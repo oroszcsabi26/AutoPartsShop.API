@@ -1,0 +1,5 @@
+- dotnet ef database update 20250219112036_UpdatePasswordHashSize --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
+- dotnet ef migrations remove --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
+- dotnet ef migrations add AddUserIdToCart1 --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
+- dotnet ef database update --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
+- dotnet ef migrations list --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
