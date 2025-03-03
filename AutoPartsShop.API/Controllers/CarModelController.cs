@@ -16,14 +16,14 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 Összes autómodell lekérése
+        // Összes autómodell lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CarModel>>> GetCarModels()
         {
             return await _context.CarModels.ToListAsync();
         }
 
-        // 🔹 Autómárkához tartozó modellek lekérése ID alapján
+        // Autómárkához tartozó modellek lekérése ID alapján
         [HttpGet("brand/{brandId}")]
         public async Task<ActionResult<IEnumerable<CarModel>>> GetModelsByBrand(int brandId)
         {
@@ -48,7 +48,7 @@ namespace AutoPartsShop.API.Controllers
                 return NotFound($"Nincs autómárka ezzel az ID-val: {brandId}");
             }
 
-            model.CarBrandId = brandId; // ✅ Csak az ID-t állítjuk be, a CarBrand objektumot NEM
+            model.CarBrandId = brandId; // Csak az ID-t állítjuk be, a CarBrand objektumot NEM
             //model.CarBrand = null;
 
             _context.CarModels.Add(model);
@@ -100,7 +100,6 @@ namespace AutoPartsShop.API.Controllers
 
             return NoContent();
         }
-
     }
 }
 

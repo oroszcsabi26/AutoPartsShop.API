@@ -16,14 +16,14 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 Összes kategória lekérése
+        // Összes kategória lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EquipmentCategory>>> GetEquipmentCategories()
         {
             return await _context.EquipmentCategories.ToListAsync();
         }
 
-        // 🔹 Egy kategória lekérése ID alapján
+        // Egy kategória lekérése ID alapján
         [HttpGet("{id}")]
         public async Task<ActionResult<EquipmentCategory>> GetEquipmentCategory(int id)
         {
@@ -37,7 +37,7 @@ namespace AutoPartsShop.API.Controllers
             return category;
         }
 
-        // 🔹 Új kategória hozzáadása
+        // Új kategória hozzáadása
         [HttpPost]
         public async Task<ActionResult<EquipmentCategory>> AddEquipmentCategory([FromBody] EquipmentCategory newCategory)
         {
@@ -59,7 +59,7 @@ namespace AutoPartsShop.API.Controllers
             return CreatedAtAction(nameof(GetEquipmentCategory), new { id = newCategory.Id }, newCategory);
         }
 
-        // 🔹 Kategória módosítása
+        // Kategória módosítása
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEquipmentCategory(int id, [FromBody] EquipmentCategory updatedCategory)
         {
@@ -80,7 +80,7 @@ namespace AutoPartsShop.API.Controllers
             return NoContent();
         }
 
-        // 🔹 Kategória törlése
+        // Kategória törlése
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEquipmentCategory(int id)
         {

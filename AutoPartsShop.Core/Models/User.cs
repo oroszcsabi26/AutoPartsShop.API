@@ -37,5 +37,8 @@ namespace AutoPartsShop.Core.Models
 
         // Kosár kapcsolata a felhasználóhoz
         public Cart? Cart { get; set; }
+
+        // Navigációs tulajdonság a rendelésekhez (egy felhasználónak több rendelése is lehet)
+        public List<Order> Orders { get; set; } = new List<Order>();
     }
 }

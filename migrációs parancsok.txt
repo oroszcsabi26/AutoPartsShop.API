@@ -1,5 +1,173 @@
 - dotnet ef database update 20250219112036_UpdatePasswordHashSize --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
 - dotnet ef migrations remove --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
-- dotnet ef migrations add AddUserIdToCart1 --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
+- dotnet ef migrations add AddOrderCommentColumn --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
 - dotnet ef database update --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
 - dotnet ef migrations list --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
+
+
+Következő lépés: A rendelési előzmények megjelenítése a felhasználói fiókban
+A célunk most az, hogy a bejelentkezett felhasználó meg tudja tekinteni a korábbi rendeléseit. Ehhez:
+
+Létrehozunk egy új komponenst (order-history.component.ts), amely megjeleníti a rendelési előzményeket.
+Meghívjuk a backend API-t az adatok lekérésére.
+Megjelenítjük az egyes rendelések részleteit (rendelés azonosító, dátum, állapot, rendelt termékek).
+Hozzáadjuk az útvonalat az alkalmazásba.
+1. Lépés: Hozzuk létre az order-history komponenst
+📌 Terminál parancs:
+
+sh
+Másolás
+Szerkesztés
+ng generate component components/order-history --standalone
+Vagy alternatív parancs:
+
+sh
+Másolás
+Szerkesztés
+ng g c components/order-history --standalone
+2. Lépés: Implementáljuk az order-history.component.ts fájlt
+Nyisd meg az order-history.component.ts fájlt, és illeszd be az alábbi kódot:
+
+typescript
+Másolás
+Szerkesztés
+import { Component, OnInit } from '@angular/core';
+import { OrderService } from '../../services/order.service';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-order-history',
+  standalone: true,
+  templateUrl: './order-history.component.html',
+  styleUrls: ['./order-history.component.css'],
+  imports: [CommonModule]
+})
+export class OrderHistoryComponent implements OnInit {
+  orders: any[] = [];
+  isLoading = true;
+
+  constructor(private orderService: OrderService) {}
+
+  ngOnInit(): void {
+    this.loadOrders();
+  }
+
+  loadOrders(): void {
+    this.orderService.getUserOrders().subscribe({
+      next: (data) => {
+        this.orders = data;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Hiba történt a rendelési adatok lekérésekor:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+}
+3. Lépés: Implementáljuk az order-history.component.html fájlt
+Nyisd meg az order-history.component.html fájlt, és illeszd be az alábbi kódot:
+
+html
+Másolás
+Szerkesztés
+<div class="order-history-container">
+  <h2>📜 Rendelési előzmények</h2>
+
+  <div *ngIf="isLoading">🔄 Rendelések betöltése...</div>
+
+  <div *ngIf="!isLoading && orders.length === 0">
+    ❌ Nincs korábbi rendelés.
+  </div>
+
+  <div *ngIf="orders.length > 0">
+    <div *ngFor="let order of orders" class="order-card">
+      <h3>📦 Rendelés #{{ order.id }}</h3>
+      <p><strong>🗓 Dátum:</strong> {{ order.orderDate | date:'yyyy-MM-dd HH:mm' }}</p>
+      <p><strong>📍 Szállítási cím:</strong> {{ order.shippingAddress }}</p>
+      <p><strong>📜 Számlázási cím:</strong> {{ order.billingAddress }}</p>
+      <p><strong>📌 Állapot:</strong> {{ order.status }}</p>
+
+      <h4>🛒 Rendelt termékek:</h4>
+      <ul>
+        <li *ngFor="let item of order.orderItems">
+          {{ item.name }} - {{ item.quantity }} db × {{ item.price | currency:'HUF' }}
+        </li>
+      </ul>
+
+      <p><strong>💰 Összesen:</strong> {{ order.orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0) | currency:'HUF' }}</p>
+    </div>
+  </div>
+</div>
+4. Lépés: Stílusok a order-history.component.css fájlban
+Nyisd meg az order-history.component.css fájlt, és illeszd be az alábbi kódot:
+
+css
+Másolás
+Szerkesztés
+.order-history-container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+h2 {
+  color: #003366;
+}
+
+.order-card {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+h3 {
+  color: #007bff;
+  margin-bottom: 5px;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  font-size: 14px;
+  padding: 5px 0;
+}
+5. Lépés: Új útvonal hozzáadása az app.routes.ts fájlhoz
+Mivel most egy új oldalt hoztunk létre, hozzá kell adnunk az útvonalakhoz.
+
+📌 Frissítsd az app.routes.ts fájlt az alábbi kóddal:
+
+typescript
+Másolás
+Szerkesztés
+import { Routes } from '@angular/router';
+import { OrderHistoryComponent } from './components/order-history/order-history.component';
+
+export const routes: Routes = [
+    { path: 'rendelesek', component: OrderHistoryComponent }
+];
+6. Lépés: Frissítsük a navigációs sávot
+Most hozzáadunk egy hivatkozást a rendelési előzmények oldalára.
+
+📌 Nyisd meg az app.component.html fájlt, és add hozzá a következő sort a navigációs sávba:
+
+html
+Másolás
+Szerkesztés
+<a *ngIf="isAuthenticated" routerLink="/rendelesek" class="auth-link">📜 Rendeléseim</a>
+📌 Összegzés
+✅ Létrehoztunk egy order-history komponenst, amely megjeleníti a felhasználó korábbi rendeléseit.
+✅ Hozzáadtuk az API hívást a rendelési előzmények lekéréséhez.
+✅ Megjelenítettük a rendelési információkat és a rendelt termékeket.
+✅ Frissítettük a navigációs sávot, hogy a felhasználó elérhesse a rendeléseit.

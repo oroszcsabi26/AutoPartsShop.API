@@ -16,7 +16,7 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 Összes autómárka lekérése
+        // Összes autómárka lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CarBrand>>> GetCarBrands()
         {
@@ -25,7 +25,7 @@ namespace AutoPartsShop.API.Controllers
                 .ToListAsync();
         }
 
-        // 🔹 Új autómárka rögzítése
+        // Új autómárka rögzítése
         [HttpPost]
         public async Task<ActionResult<CarBrand>> AddCarBrand(CarBrand newBrand)
         {
@@ -82,6 +82,5 @@ namespace AutoPartsShop.API.Controllers
 
             return NoContent();
         }
-
     }
 }

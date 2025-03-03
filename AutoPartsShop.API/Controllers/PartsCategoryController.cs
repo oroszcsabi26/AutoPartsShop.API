@@ -19,14 +19,14 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 Összes alkatrész kategória lekérése
+        // Összes alkatrész kategória lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PartsCategory>>> GetPartsCategories()
         {
             return await _context.PartsCategories.ToListAsync();
         }
 
-        // 🔹 Új alkatrész kategória hozzáadása
+        // Új alkatrész kategória hozzáadása
         [HttpPost]
         public async Task<ActionResult<PartsCategory>> AddPartsCategory([FromBody] PartsCategory newCategory)
         {

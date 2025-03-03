@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartsShop.API.Controllers
 {
-    [Route("api/parts")] // 🔹 Az API végpont URL-je /api/parts lesz.
+    [Route("api/parts")] // Az API végpont URL-je /api/parts lesz.
     [ApiController]
     public class PartsController : ControllerBase
     {
@@ -17,7 +17,7 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 Összes alkatrész lekérése
+        // Összes alkatrész lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Part>>> GetParts()
         {
@@ -27,7 +27,7 @@ namespace AutoPartsShop.API.Controllers
                 .ToListAsync();
         }
 
-        // 🔹 Egy adott autómodell alkatrészeinek lekérése
+        // Egy adott autómodell alkatrészeinek lekérése
         [HttpGet("carModel/{carModelId}")]
         public async Task<ActionResult<IEnumerable<Part>>> GetPartsByCarModel(int carModelId)
         {
@@ -46,7 +46,7 @@ namespace AutoPartsShop.API.Controllers
             return parts;
         }
 
-        // 🔹 Új alkatrész rögzítése
+        // Új alkatrész rögzítése
         [HttpPost]
         public async Task<ActionResult<Part>> AddPart([FromBody] Part newPart)
         {

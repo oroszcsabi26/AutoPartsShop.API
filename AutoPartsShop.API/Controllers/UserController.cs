@@ -17,7 +17,7 @@ namespace AutoPartsShop.API.Controllers
     public class UserController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _configuration; // ✅ Az appsettings.json elérése
+        private readonly IConfiguration _configuration; // Az appsettings.json elérése
 
         public UserController(AppDbContext context, IConfiguration configuration)
         {
@@ -25,11 +25,11 @@ namespace AutoPartsShop.API.Controllers
             _configuration = configuration;
         }
 
-        // 🔹 Felhasználó regisztrációja
+        // Felhasználó regisztrációja
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] User newUser)
         {
-            // 🔹 1. Ellenőrizzük, hogy minden mező ki van-e töltve
+            // 1. Ellenőrizzük, hogy minden mező ki van-e töltve
             if (string.IsNullOrWhiteSpace(newUser.FirstName) ||
                 string.IsNullOrWhiteSpace(newUser.LastName) ||
                 string.IsNullOrWhiteSpace(newUser.Email) ||
@@ -41,24 +41,24 @@ namespace AutoPartsShop.API.Controllers
                 return BadRequest(new { message = "Minden mezőt ki kell tölteni!" });
             }
 
-            // 🔹 2. Normalizáljuk az e-mail címet (kisbetűssé alakítjuk)
+            // 2. Normalizáljuk az e-mail címet (kisbetűssé alakítjuk)
             newUser.Email = newUser.Email.Trim().ToLower();
 
-            // 🔹 3. Ellenőrizzük, hogy az e-mail cím már foglalt-e
+            // 3. Ellenőrizzük, hogy az e-mail cím már foglalt-e
             bool emailExists = await _context.Users.AnyAsync(u => u.Email == newUser.Email);
             if (emailExists)
             {
                 return Conflict(new { message = "Ez az e-mail cím már regisztrálva van!" });
             }
 
-            // 🔹 4. Jelszó hash-elése
+            // 4. Jelszó hash-elése
             newUser.PasswordHash = HashPassword(newUser.PasswordHash);
 
-            // 🔹 5. Új felhasználó mentése az adatbázisba
+            // 5. Új felhasználó mentése az adatbázisba
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            // 🔹 6. Válasz küldése a frontendnek
+            // 6. Válasz küldése a frontendnek
             return Ok(new
             {
                 message = "Sikeres regisztráció!",
@@ -73,7 +73,7 @@ namespace AutoPartsShop.API.Controllers
         }
 
 
-        // 🔹 Felhasználó bejelentkezése + JWT token generálás
+        // Felhasználó bejelentkezése + JWT token generálás
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginRequest request)
         {
@@ -111,7 +111,7 @@ namespace AutoPartsShop.API.Controllers
             });
         }
 
-        // 🔹 JWT Token generáló metódus
+        // JWT Token generáló metódus
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
@@ -137,7 +137,7 @@ namespace AutoPartsShop.API.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        // 🔹 Jelszó hash-elő függvény (SHA256 algoritmus)
+        // Jelszó hash-elő függvény (SHA256 algoritmus)
         private string HashPassword(string password)
         {
             using (SHA256 sha256 = SHA256.Create())
@@ -148,7 +148,7 @@ namespace AutoPartsShop.API.Controllers
             }
         }
 
-        // 🔹 Jelszóellenőrző metódus
+        // Jelszóellenőrző metódus
         private bool VerifyPassword(string password, string storedHash)
         {
             using (SHA256 sha256 = SHA256.Create())

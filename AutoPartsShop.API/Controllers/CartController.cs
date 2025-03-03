@@ -9,7 +9,7 @@ namespace AutoPartsShop.API.Controllers
 {
     [Route("api/cart")]
     [ApiController]
-    [Authorize] // ✅ Bejelentkezés szükséges minden végponthoz
+    [Authorize] // Bejelentkezés szükséges minden végponthoz
     public class CartController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -19,7 +19,7 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 A bejelentkezett felhasználó saját kosarának lekérése
+        // A bejelentkezett felhasználó saját kosarának lekérése
         [HttpGet("my-cart")]
         public async Task<ActionResult<IEnumerable<CartItem>>> GetUserCart()
         {
@@ -30,12 +30,12 @@ namespace AutoPartsShop.API.Controllers
                 .Include(c => c.Items)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
-            if (cart == null) return Ok(new List<CartItem>()); // 🔹 Üres listát ad vissza, nem 404-et
+            if (cart == null) return Ok(new List<CartItem>()); // Üres listát ad vissza, nem 404-et
 
             return Ok(cart.Items);
         }
 
-        // 🔹 Termék hozzáadása a saját kosárhoz
+        // Termék hozzáadása a saját kosárhoz
         [HttpPost("add")]
         public async Task<IActionResult> AddToCart([FromBody] CartItem newItem)
         {
@@ -81,7 +81,7 @@ namespace AutoPartsShop.API.Controllers
             return Ok(new { message = "A termék sikeresen hozzáadva a kosárhoz!", cartItem = newItem });
         }
 
-        // 🔹 Kosárban lévő termék mennyiségének módosítása
+        // Kosárban lévő termék mennyiségének módosítása
         [HttpPut("update/{cartItemId}/{quantity}")]
         public async Task<IActionResult> UpdateCartItemQuantity(int cartItemId, int quantity)
         {
@@ -100,7 +100,7 @@ namespace AutoPartsShop.API.Controllers
             return Ok(new { message = "Termék mennyisége frissítve!", cartItem = item });
         }
 
-        // 🔹 Termék eltávolítása a saját kosárból
+        // Termék eltávolítása a saját kosárból
         [HttpDelete("remove/{cartItemId}")]
         public async Task<IActionResult> RemoveFromCart(int cartItemId)
         {
@@ -119,7 +119,7 @@ namespace AutoPartsShop.API.Controllers
             return Ok(new { message = "Termék eltávolítva a kosárból!" });
         }
 
-        // 🔹 Saját kosár teljes törlése
+        // Saját kosár teljes törlése
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteCart()
         {
@@ -132,10 +132,10 @@ namespace AutoPartsShop.API.Controllers
                                                .FirstOrDefaultAsync(c => c.UserId == userId);
                 if (cart == null) return Ok(new { message = "A kosár nem létezik, nincs mit törölni." });
 
-                // 🔹 Előbb töröljük az összes tételt a kosárból
+                // Előbb töröljük az összes tételt a kosárból
                 _context.CartItems.RemoveRange(cart.Items);
 
-                // 🔹 Majd töröljük magát a kosarat
+                // Majd töröljük magát a kosarat
                 _context.Carts.Remove(cart);
 
                 // 🔹 Adatbázis mentése
@@ -157,14 +157,14 @@ namespace AutoPartsShop.API.Controllers
 
 
 
-        // 🔹 Felhasználói azonosító lekérése a JWT tokenből
+        // Felhasználói azonosító lekérése a JWT tokenből
         private int? GetUserId()
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             return userIdClaim != null ? int.Parse(userIdClaim.Value) : (int?)null;
         }
 
-        // 🔹 Ha nincs kosár, akkor létrehozzuk és visszaadjuk
+        // Ha nincs kosár, akkor létrehozzuk és visszaadjuk
         private async Task<Cart> GetOrCreateCart(int userId)
         {
             var cart = await _context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId);
@@ -177,7 +177,7 @@ namespace AutoPartsShop.API.Controllers
             return cart;
         }
         
-        // 🔹 Ideiglenes végpont kosár létrehozásához
+        //Ideiglenes végpont kosár létrehozásához
         [HttpPost("create")]
         public async Task<ActionResult<Cart>> CreateCart()
         {

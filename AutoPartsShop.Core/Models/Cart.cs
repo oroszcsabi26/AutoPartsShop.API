@@ -8,7 +8,7 @@ namespace AutoPartsShop.Core.Models
         [Key]
         public int Id { get; set; }
 
-        public int? UserId { get; set; } // 🔹 Kosárhoz kapcsolódó felhasználó
+        public int? UserId { get; set; } // Kosárhoz kapcsolódó felhasználó
 
         public List<CartItem> Items { get; set; } = new List<CartItem>();
     }

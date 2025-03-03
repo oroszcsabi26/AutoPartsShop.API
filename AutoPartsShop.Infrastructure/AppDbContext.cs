@@ -11,42 +11,43 @@ namespace AutoPartsShop.Infrastructure
         {
         }
 
-        // 🔹 DbSet-ek (ezekből lesznek az adatbázis táblák)
+        // DbSet-ek (ezekből lesznek az adatbázis táblák)
         public DbSet<CarBrand> CarBrands { get; set; }
         public DbSet<CarModel> CarModels { get; set; }
         public DbSet<PartsCategory> PartsCategories { get; set; } // Alkatrész kategóriák táblája
         public DbSet<Part> Parts { get; set; } // Alkatrészek táblája
         public DbSet<EquipmentCategory> EquipmentCategories { get; set; }
         public DbSet<Equipment> Equipments { get; set; }
-
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<User> Users { get; set; } // Felhasználók táblája
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // 🔹 Egy autómárkához több modell tartozhat (1:N kapcsolat)
+            // Egy autómárkához több modell tartozhat (1:N kapcsolat)
             modelBuilder.Entity<CarModel>()
                 .HasOne(cm => cm.CarBrand)
                 .WithMany(cb => cb.CarModels)
                 .HasForeignKey(cm => cm.CarBrandId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 🔹 Egy PartsCategory-hoz több Part tartozhat (1:N kapcsolat)
+            // Egy PartsCategory-hoz több Part tartozhat (1:N kapcsolat)
             modelBuilder.Entity<Part>()
                 .HasOne(p => p.PartsCategory)
                 .WithMany(pc => pc.Parts)
                 .HasForeignKey(p => p.PartsCategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 🔹 Alkatrész árának pontos SQL típusa, hogy ne legyen adatvesztés
+            // Alkatrész árának pontos SQL típusa, hogy ne legyen adatvesztés
             modelBuilder.Entity<Part>()
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)"); // 18 számjegy, 2 tizedesjegy
 
-            // 🔹 Egy EquipmentCategory-hoz több Equipment tartozhat (1:N kapcsolat)
+            // Egy EquipmentCategory-hoz több Equipment tartozhat (1:N kapcsolat)
             modelBuilder.Entity<Equipment>()
                 .HasOne(e => e.EquipmentCategory)
                 .WithMany(ec => ec.Equipments)
@@ -74,6 +75,32 @@ namespace AutoPartsShop.Infrastructure
                 .WithMany()
                 .HasForeignKey(ci => ci.EquipmentId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.User)
+                .WithMany(u => u.Orders)
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // Ha a felhasználó törlődik, a rendelései is törlődnek
+
+            // Egy rendelés több OrderItem-et is tartalmazhat (1:N kapcsolat)
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade); // Ha a rendelés törlődik, a rendelési tételek is törlődnek
+
+            // Egy OrderItem vagy egy alkatrészre, vagy egy felszerelésre hivatkozik (opcionális)
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Part)
+                .WithMany()
+                .HasForeignKey(oi => oi.PartId)
+                .OnDelete(DeleteBehavior.Restrict); // Alkatrészek ne törlődjenek a rendelésekkel
+
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Equipment)
+                .WithMany()
+                .HasForeignKey(oi => oi.EquipmentId)
+                .OnDelete(DeleteBehavior.Restrict); // Felszerelések ne törlődjenek a rendelésekkel
         }
     }
 }

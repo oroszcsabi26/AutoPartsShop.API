@@ -16,7 +16,7 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 Összes felszerelési cikk lekérése
+        // Összes felszerelési cikk lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Equipment>>> GetEquipments()
         {
@@ -25,7 +25,7 @@ namespace AutoPartsShop.API.Controllers
                 .ToListAsync();
         }
 
-        // 🔹 Egy adott kategória szerinti felszerelési cikkek lekérése
+        // Egy adott kategória szerinti felszerelési cikkek lekérése
         [HttpGet("category/{categoryId}")]
         public async Task<ActionResult<IEnumerable<Equipment>>> GetEquipmentsByCategory(int categoryId)
         {
@@ -42,7 +42,7 @@ namespace AutoPartsShop.API.Controllers
             return equipments;
         }
 
-        // 🔹 Új felszerelési cikk rögzítése
+        // Új felszerelési cikk rögzítése
         [HttpPost]
         public async Task<ActionResult<Equipment>> AddEquipment([FromBody] Equipment newEquipment)
         {
