@@ -1,6 +1,7 @@
 ﻿using AutoPartsShop.Core.DTOs;
 using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -88,19 +89,19 @@ namespace AutoPartsShop.API.Controllers
                 return Unauthorized("Hibás e-mail vagy jelszó!");
             }
 
-            // 🔹 Ellenőrizzük a hash-elt jelszót
+            // Ellenőrizzük a hash-elt jelszót
             if (!VerifyPassword(request.Password, user.PasswordHash))
             {
                 return Unauthorized("Hibás e-mail vagy jelszó!");
             }
 
-            // ✅ JWT token generálás a bejelentkezett felhasználónak
+            // JWT token generálás a bejelentkezett felhasználónak
             var token = GenerateJwtToken(user);
 
             return Ok(new
             {
                 message = "Sikeres bejelentkezés!",
-                token, // 🆕 A generált JWT token
+                token, // A generált JWT token
                 user = new
                 {
                     id = user.Id,
@@ -158,6 +159,82 @@ namespace AutoPartsShop.API.Controllers
                 string hashString = Convert.ToBase64String(hash);
                 return hashString == storedHash;
             }
+        }
+
+        // Felhasználói profil lekérése (név, email, cím, telefonszám)
+        [HttpGet("profile")]
+        [Authorize] // Csak bejelentkezett felhasználók érhetik el
+        public async Task<IActionResult> GetUserProfile()
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized(new { message = "Felhasználó azonosítása sikertelen!" });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return NotFound(new { message = "Felhasználó nem található!" });
+
+            return Ok(new
+            {
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.PhoneNumber,
+                user.Address, // Számlázási cím
+                user.ShippingAddress // Szállítási cím
+            });
+        }
+
+        //  Felhasználói profil módosítása (név, telefonszám, címek) – DTO használata
+        [HttpPut("update-profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUserProfile([FromBody] UserProfileUpdate updatedUserData)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized(new { message = "Felhasználó azonosítása sikertelen!" });
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return NotFound(new { message = "Felhasználó nem található!" });
+
+            // Frissítjük az adatokat (de a PasswordHash érintetlen marad!)
+            user.FirstName = updatedUserData.FirstName;
+            user.LastName = updatedUserData.LastName;
+            user.Email = updatedUserData.Email; // Az email változtatása nem ajánlott, de engedjük most
+            user.PhoneNumber = updatedUserData.PhoneNumber;
+            user.Address = updatedUserData.Address;
+            user.ShippingAddress = updatedUserData.ShippingAddress;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Felhasználói adatok sikeresen frissítve!" });
+        }
+
+        // Felhasználó rendeléseinek lekérése
+        [HttpGet("my-orders")]
+        [Authorize]
+        public async Task<IActionResult> GetUserOrders()
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized(new { message = "Felhasználó azonosítása sikertelen!" });
+
+            var orders = await _context.Orders
+                .Where(o => o.UserId == userId)
+                .Include(o => o.OrderItems)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            return Ok(orders);
+        }
+
+        // Segédfüggvény a bejelentkezett felhasználó azonosítójának lekérésére
+        private int? GetUserId()
+        {
+            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+            return userIdClaim != null ? int.Parse(userIdClaim.Value) : (int?)null;
         }
     }
 }
