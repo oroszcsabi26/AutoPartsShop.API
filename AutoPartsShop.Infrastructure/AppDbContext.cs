@@ -1,5 +1,6 @@
 ﻿using AutoPartsShop.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using AutoPartsShop.Core.Helpers;
 
 namespace AutoPartsShop.Infrastructure
 {
@@ -101,6 +102,19 @@ namespace AutoPartsShop.Infrastructure
                 .WithMany()
                 .HasForeignKey(oi => oi.EquipmentId)
                 .OnDelete(DeleteBehavior.Restrict); // Felszerelések ne törlődjenek a rendelésekkel
+
+            modelBuilder.Entity<User>().HasData(new User
+            {
+                Id = -1,
+                FirstName = "Admin",
+                LastName = "User",
+                Email = "admin@autopartsshop.com",
+                PasswordHash = PasswordHelper.HashPassword("Admin123!"), // 🔹 Hash-elt jelszó
+                Address = "Admin Street 1",
+                ShippingAddress = "Admin Street 1",
+                PhoneNumber = "+36123456789",
+                IsAdmin = true
+            });
         }
     }
 }

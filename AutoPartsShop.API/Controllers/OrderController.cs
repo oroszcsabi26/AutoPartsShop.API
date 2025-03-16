@@ -91,5 +91,66 @@ namespace AutoPartsShop.API.Controllers
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             return userIdClaim != null ? int.Parse(userIdClaim.Value) : (int?)null;
         }
+
+        [HttpGet("my-orders")]
+        public async Task<IActionResult> GetUserOrders()
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized("Felhasználó azonosítása sikertelen!");
+
+            var orders = await _context.Orders
+                .Where(o => o.UserId == userId)
+                .Include(o => o.OrderItems)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            return Ok(orders);
+        }
+
+        // Összes rendelés lekérése admin számára
+        [HttpGet("all")]
+        [Authorize] // Csak bejelentkezett adminok érhetik el
+        public async Task<IActionResult> GetAllOrders()
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized("Felhasználó azonosítása sikertelen!");
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || !user.IsAdmin)
+                return Forbid("Nincs jogosultságod az összes rendelés lekérdezésére!");
+
+            var orders = await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.OrderItems)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            return Ok(orders);
+        }
+
+        // Rendelés törlése (csak admin)
+        [HttpDelete("delete/{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteOrder(int id)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized("Felhasználó azonosítása sikertelen!");
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || !user.IsAdmin)
+                return Forbid("Nincs jogosultságod a rendelés törlésére!");
+
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null)
+                return NotFound($"Nem található rendelés ezzel az ID-vel: {id}");
+
+            _context.Orders.Remove(order);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Rendelés törölve!" });
+        }
     }
 }

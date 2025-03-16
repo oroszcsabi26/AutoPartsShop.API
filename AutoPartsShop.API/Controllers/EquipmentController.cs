@@ -21,7 +21,6 @@ namespace AutoPartsShop.API.Controllers
         public async Task<ActionResult<IEnumerable<Equipment>>> GetEquipments()
         {
             return await _context.Equipments
-                .Include(e => e.EquipmentCategory) // Betöltjük a kategória adatait is
                 .ToListAsync();
         }
 

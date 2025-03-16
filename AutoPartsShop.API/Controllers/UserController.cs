@@ -10,6 +10,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using AutoPartsShop.Core.Helpers;
 
 namespace AutoPartsShop.API.Controllers
 {
@@ -53,7 +54,7 @@ namespace AutoPartsShop.API.Controllers
             }
 
             // 4. Jelszó hash-elése
-            newUser.PasswordHash = HashPassword(newUser.PasswordHash);
+            newUser.PasswordHash = PasswordHelper.HashPassword(newUser.PasswordHash);
 
             // 5. Új felhasználó mentése az adatbázisba
             _context.Users.Add(newUser);
@@ -107,7 +108,8 @@ namespace AutoPartsShop.API.Controllers
                     id = user.Id,
                     firstName = user.FirstName,
                     lastName = user.LastName,
-                    email = user.Email
+                    email = user.Email,
+                    isAdmin = user.IsAdmin
                 }
             });
         }
@@ -136,17 +138,6 @@ namespace AutoPartsShop.API.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        // Jelszó hash-elő függvény (SHA256 algoritmus)
-        private string HashPassword(string password)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] bytes = Encoding.UTF8.GetBytes(password);
-                byte[] hash = sha256.ComputeHash(bytes);
-                return Convert.ToBase64String(hash);
-            }
         }
 
         // Jelszóellenőrző metódus
@@ -235,6 +226,99 @@ namespace AutoPartsShop.API.Controllers
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             return userIdClaim != null ? int.Parse(userIdClaim.Value) : (int?)null;
+        }
+
+        [HttpPost("create-admin")]
+        [Authorize] // Csak bejelentkezett adminok érhetik el
+        public async Task<IActionResult> CreateAdmin([FromBody] AdminCreateRequest request)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized("Felhasználó azonosítása sikertelen!");
+
+            // Ellenőrizzük, hogy a bejelentkezett felhasználó admin-e
+            var requestingUser = await _context.Users.FindAsync(userId);
+            if (requestingUser == null || !requestingUser.IsAdmin)
+                return Forbid("Nincs jogosultságod admin létrehozására!");
+
+            // Ellenőrizzük, hogy az e-mail már létezik-e
+            bool emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email);
+            if (emailExists)
+                return Conflict("Ez az e-mail cím már regisztrálva van!");
+
+            // Új admin létrehozása
+            var newAdmin = new User
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                PasswordHash = PasswordHelper.HashPassword(request.Password), // Hash-elés
+                Address = request.Address,
+                ShippingAddress = request.ShippingAddress,
+                PhoneNumber = request.PhoneNumber,
+                IsAdmin = true // Admin jog beállítása
+            };
+
+            _context.Users.Add(newAdmin);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Új admin sikeresen létrehozva!", adminId = newAdmin.Id });
+        }
+
+        [HttpGet("admins")]
+        [Authorize] // Csak bejelentkezett adminok kérdezhetik le
+        public async Task<IActionResult> GetAdmins()
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized("Felhasználó azonosítása sikertelen!");
+
+            // Ellenőrizzük, hogy a bejelentkezett felhasználó admin-e
+            var requestingUser = await _context.Users.FindAsync(userId);
+            if (requestingUser == null || !requestingUser.IsAdmin)
+                return Forbid("Nincs jogosultságod az adminok listázására!");
+
+            // Összes admin lekérdezése
+            var admins = await _context.Users
+                .Where(u => u.IsAdmin)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.PhoneNumber,
+                    u.Address
+                })
+                .ToListAsync();
+
+            return Ok(admins);
+        }
+
+        [HttpPut("update-admin-profile")]
+        [Authorize] // Csak bejelentkezett adminok módosíthatják a saját adataikat
+        public async Task<IActionResult> UpdateAdminProfile([FromBody] UserProfileUpdate updatedAdminData)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized("Felhasználó azonosítása sikertelen!");
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || !user.IsAdmin)
+                return Forbid("Nincs jogosultságod admin profil módosítására!");
+
+            // Frissítjük az adatokat (de a PasswordHash érintetlen marad!)
+            user.FirstName = updatedAdminData.FirstName;
+            user.LastName = updatedAdminData.LastName;
+            user.Email = updatedAdminData.Email;
+            user.PhoneNumber = updatedAdminData.PhoneNumber;
+            user.Address = updatedAdminData.Address;
+            user.ShippingAddress = updatedAdminData.ShippingAddress;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Admin adatai sikeresen frissítve!" });
         }
     }
 }

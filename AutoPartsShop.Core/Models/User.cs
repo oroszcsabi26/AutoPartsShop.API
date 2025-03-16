@@ -22,7 +22,7 @@ namespace AutoPartsShop.Core.Models
 
         [Required]
         [MinLength(8)]
-        [MaxLength(64)]
+        [MaxLength(1000)]
         public string PasswordHash { get; set; } = string.Empty; // Jelszó (hash-elt)
 
         [MaxLength(255)]
@@ -40,5 +40,7 @@ namespace AutoPartsShop.Core.Models
 
         // Navigációs tulajdonság a rendelésekhez (egy felhasználónak több rendelése is lehet)
         public List<Order> Orders { get; set; } = new List<Order>();
+
+        public bool IsAdmin { get; set; } = false; // Adminisztrátor jogosultság
     }
 }

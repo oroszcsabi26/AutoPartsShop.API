@@ -20,7 +20,9 @@ namespace AutoPartsShop.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EquipmentCategory>>> GetEquipmentCategories()
         {
-            return await _context.EquipmentCategories.ToListAsync();
+            return await _context.EquipmentCategories
+                //.Include(ec => ec.Equipments)
+                .ToListAsync();
         }
 
         // Egy kategória lekérése ID alapján
