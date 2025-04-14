@@ -109,7 +109,7 @@ namespace AutoPartsShop.Infrastructure
                 FirstName = "Admin",
                 LastName = "User",
                 Email = "admin@autopartsshop.com",
-                PasswordHash = PasswordHelper.HashPassword("Admin123!"), // 🔹 Hash-elt jelszó
+                PasswordHash = PasswordHelper.HashPassword("Admin123!"), // Hash-elt jelszó
                 Address = "Admin Street 1",
                 ShippingAddress = "Admin Street 1",
                 PhoneNumber = "+36123456789",

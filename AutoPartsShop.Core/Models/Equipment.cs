@@ -24,5 +24,16 @@ namespace AutoPartsShop.Core.Models
 
         [ForeignKey("EquipmentCategoryId")]
         public EquipmentCategory? EquipmentCategory { get; set; } // Egy felszerelési cikk egy kategóriába tartozik
+
+        //Új mezők
+        public string? Description { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "A mennyiség legalább 1 legyen.")]
+        public int Quantity { get; set; } = 1;
+
+        public string? ImageUrl { get; set; }
+        public string? Material { get; set; }
+        public string? Side { get; set; }
     }
 }

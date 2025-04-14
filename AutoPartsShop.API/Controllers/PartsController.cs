@@ -1,4 +1,5 @@
-﻿using AutoPartsShop.Core.Models;
+﻿using AutoPartsShop.Core.DTOs;
+using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,38 @@ namespace AutoPartsShop.API.Controllers
                 .Include(p => p.CarModel)
                 .ToListAsync();
         }
+       
+        /*
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<PartDisplay>>> GetParts()
+        {
+            var parts = await _context.Parts
+                .Include(p => p.CarModel)
+                    .ThenInclude(cm => cm.CarBrand)
+                .Include(p => p.PartsCategory)
+                .ToListAsync();
+
+            var result = parts.Select(p => new PartDisplay
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Manufacturer = p.Manufacturer ?? "",
+                Side = p.Side,
+                Shape = p.Shape,
+                Size = p.Size,
+                Type = p.Type,
+                Material = p.Material,
+                Description = p.Description,
+                Quantity = p.Quantity,
+                CategoryName = p.PartsCategory?.Name ?? "",
+                CarModelName = p.CarModel?.Name ?? "",
+                CarBrandName = p.CarModel?.CarBrand?.Name ?? ""
+            }).ToList();
+
+            return Ok(result);
+        }
+        */
 
         // Egy adott autómodell alkatrészeinek lekérése
         [HttpGet("carModel/{carModelId}")]
@@ -64,6 +97,18 @@ namespace AutoPartsShop.API.Controllers
                 return BadRequest($"Nincs ilyen alkatrészkategória ID: {newPart.PartsCategoryId}");
             }
 
+            if (string.IsNullOrWhiteSpace(newPart.Manufacturer))
+                return BadRequest("A gyártó megadása kötelező!");
+
+            // Alapértelmezett értékek (ha a frontend nem küldi)
+            newPart.Quantity = newPart.Quantity == 0 ? 1 : newPart.Quantity;
+            newPart.Description ??= "";
+            newPart.Type ??= "";
+            newPart.Shape ??= "";
+            newPart.Size ??= "";
+            newPart.Side ??= "";
+            newPart.Material ??= "";
+
             _context.Parts.Add(newPart);
             await _context.SaveChangesAsync();
 
@@ -79,11 +124,25 @@ namespace AutoPartsShop.API.Controllers
                 return NotFound($"Nincs alkatrész ezzel az ID-vel: {id}");
             }
 
+            if (string.IsNullOrWhiteSpace(updatedPart.Manufacturer))
+            {
+                return BadRequest("A gyártó megadása kötelező!");
+            }
+
             // Frissítés
             part.Name = updatedPart.Name;
             part.Price = updatedPart.Price;
             part.PartsCategoryId = updatedPart.PartsCategoryId;
             part.CarModelId = updatedPart.CarModelId;
+
+            part.Manufacturer = updatedPart.Manufacturer;
+            part.Quantity = updatedPart.Quantity;
+            part.Side = updatedPart.Side;
+            part.Shape = updatedPart.Shape;
+            part.Size = updatedPart.Size;
+            part.Type = updatedPart.Type;
+            part.Material = updatedPart.Material;
+            part.Description = updatedPart.Description;
 
             await _context.SaveChangesAsync();
             return NoContent(); // 204 No Content, mert nincs visszaküldendő adat
@@ -104,42 +163,55 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Part>>> SearchParts(
-            [FromQuery] string? name,
-            [FromQuery] int? carModelId,
-            [FromQuery] int? partsCategoryId)
+        public async Task<ActionResult<IEnumerable<PartDisplay>>> SearchParts([FromQuery] string? name, [FromQuery] int? carModelId, [FromQuery] int? partsCategoryId)
         {
             IQueryable<Part> query = _context.Parts
                 .Include(p => p.CarModel)
+                    .ThenInclude(cm => cm.CarBrand)
                 .Include(p => p.PartsCategory);
 
-            // Ha sem autómodell, sem kategória nincs megadva, ne adjunk vissza találatot!
             if (!carModelId.HasValue && !partsCategoryId.HasValue)
             {
                 return BadRequest("Legalább egy szűrési feltétel (autómodell vagy alkatrész kategória) szükséges!");
             }
 
-            // Név szerinti szűrés
             if (!string.IsNullOrWhiteSpace(name))
             {
                 query = query.Where(p => p.Name.Contains(name));
             }
 
-            // Autómodell szerinti szűrés
             if (carModelId.HasValue)
             {
                 query = query.Where(p => p.CarModelId == carModelId.Value);
             }
 
-            // Alkatrész kategória szerinti szűrés
             if (partsCategoryId.HasValue)
             {
                 query = query.Where(p => p.PartsCategoryId == partsCategoryId.Value);
             }
 
-            var result = await query.ToListAsync();
+            var parts = await query.ToListAsync();
 
-            // Ha nincs találat, üres listát adunk vissza 200-as kóddal
+            var result = parts.Select(p => new PartDisplay
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Manufacturer = p.Manufacturer ?? "",
+                Side = p.Side,
+                Shape = p.Shape,
+                Size = p.Size,
+                Type = p.Type,
+                Material = p.Material,
+                Description = p.Description,
+                Quantity = p.Quantity,
+                CategoryName = p.PartsCategory?.Name ?? "",
+                CarModelName = p.CarModel?.Name ?? "",
+                CarBrandName = p.CarModel?.CarBrand?.Name ?? "",
+                CarModelId = p.CarModelId,
+                PartsCategoryId = p.PartsCategoryId
+            }).ToList();
+
             return Ok(result);
         }
     }

@@ -1,4 +1,5 @@
-﻿using AutoPartsShop.Core.Models;
+﻿using AutoPartsShop.Core.DTOs;
+using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,17 +17,34 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // Összes felszerelési cikk lekérése
+        // 🔹 Összes felszerelési cikk lekérése DTO-val
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Equipment>>> GetEquipments()
+        public async Task<ActionResult<IEnumerable<EquipmentDisplay>>> GetEquipments()
         {
-            return await _context.Equipments
+            var equipments = await _context.Equipments
+                .Include(e => e.EquipmentCategory)
                 .ToListAsync();
+
+            return equipments.Select(e => new EquipmentDisplay
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Manufacturer = e.Manufacturer,
+                Price = e.Price,
+                Size = e.Size,
+                Description = e.Description,
+                Quantity = e.Quantity,
+                ImageUrl = e.ImageUrl,
+                Material = e.Material,
+                Side = e.Side,
+                EquipmentCategoryId = e.EquipmentCategoryId,
+                CategoryName = e.EquipmentCategory?.Name ?? ""
+            }).ToList();
         }
 
-        // Egy adott kategória szerinti felszerelési cikkek lekérése
+        // 🔹 Egy adott kategória szerinti felszerelések DTO-val
         [HttpGet("category/{categoryId}")]
-        public async Task<ActionResult<IEnumerable<Equipment>>> GetEquipmentsByCategory(int categoryId)
+        public async Task<ActionResult<IEnumerable<EquipmentDisplay>>> GetEquipmentsByCategory(int categoryId)
         {
             var equipments = await _context.Equipments
                 .Where(e => e.EquipmentCategoryId == categoryId)
@@ -38,28 +56,35 @@ namespace AutoPartsShop.API.Controllers
                 return NotFound($"Nem található felszerelési cikk ezzel a kategória ID-vel: {categoryId}");
             }
 
-            return equipments;
+            return equipments.Select(e => new EquipmentDisplay
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Manufacturer = e.Manufacturer,
+                Price = e.Price,
+                Size = e.Size,
+                Description = e.Description,
+                Quantity = e.Quantity,
+                ImageUrl = e.ImageUrl,
+                Material = e.Material,
+                Side = e.Side,
+                EquipmentCategoryId = e.EquipmentCategoryId,
+                CategoryName = e.EquipmentCategory?.Name ?? ""
+            }).ToList();
         }
 
-        // Új felszerelési cikk rögzítése
+        // 🔹 Új felszerelés hozzáadása (változatlan)
         [HttpPost]
         public async Task<ActionResult<Equipment>> AddEquipment([FromBody] Equipment newEquipment)
         {
             if (string.IsNullOrWhiteSpace(newEquipment.Name) || string.IsNullOrWhiteSpace(newEquipment.Manufacturer))
-            {
                 return BadRequest("A név és a gyártó megadása kötelező!");
-            }
 
             if (newEquipment.Price <= 0)
-            {
                 return BadRequest("Az ár nem lehet nulla vagy negatív!");
-            }
 
-            var categoryExists = await _context.EquipmentCategories.AnyAsync(ec => ec.Id == newEquipment.EquipmentCategoryId);
-            if (!categoryExists)
-            {
+            if (!await _context.EquipmentCategories.AnyAsync(ec => ec.Id == newEquipment.EquipmentCategoryId))
                 return BadRequest($"Nincs ilyen kategória ID: {newEquipment.EquipmentCategoryId}");
-            }
 
             _context.Equipments.Add(newEquipment);
             await _context.SaveChangesAsync();
@@ -67,37 +92,40 @@ namespace AutoPartsShop.API.Controllers
             return CreatedAtAction(nameof(GetEquipments), new { id = newEquipment.Id }, newEquipment);
         }
 
+        // 🔹 Felszerelés módosítása
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEquipment(int id, [FromBody] Equipment updatedEquipment)
         {
             var existingEquipment = await _context.Equipments.FindAsync(id);
             if (existingEquipment == null)
-            {
                 return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {id}");
-            }
 
             existingEquipment.Name = updatedEquipment.Name;
             existingEquipment.Manufacturer = updatedEquipment.Manufacturer;
             existingEquipment.Size = updatedEquipment.Size;
             existingEquipment.Price = updatedEquipment.Price;
+            existingEquipment.Description = updatedEquipment.Description;
+            existingEquipment.Quantity = updatedEquipment.Quantity;
+            existingEquipment.ImageUrl = updatedEquipment.ImageUrl;
+            existingEquipment.Material = updatedEquipment.Material;
+            existingEquipment.Side = updatedEquipment.Side;
             existingEquipment.EquipmentCategoryId = updatedEquipment.EquipmentCategoryId;
 
             await _context.SaveChangesAsync();
-            return NoContent(); // 204 No Content
+            return NoContent();
         }
 
+        // 🔹 Felszerelés törlése
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEquipment(int id)
         {
             var equipment = await _context.Equipments.FindAsync(id);
             if (equipment == null)
-            {
                 return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {id}");
-            }
 
             _context.Equipments.Remove(equipment);
             await _context.SaveChangesAsync();
-            return NoContent(); // 204 No Content
+            return NoContent();
         }
     }
 }

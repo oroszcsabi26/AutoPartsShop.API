@@ -1,5 +1,5 @@
 - dotnet ef database update 20250219112036_UpdatePasswordHashSize --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
 - dotnet ef migrations remove --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
-- dotnet ef migrations add AddOrderFunction --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
+- dotnet ef migrations add AddExtendedFieldsToEquipment2 --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
 - dotnet ef database update --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API
 - dotnet ef migrations list --project AutoPartsShop.Infrastructure --startup-project AutoPartsShop.API

@@ -30,5 +30,22 @@ namespace AutoPartsShop.Core.Models
 
         [ForeignKey("PartsCategoryId")]
         public PartsCategory? PartsCategory { get; set; } // Egy alkatrész egy kategóriához tartozik
+
+        [Required]
+        public string Manufacturer { get; set; } = "Ismeretlen"; // Gyártó neve (KÖTELEZŐ)
+
+        public string? Side { get; set; } = string.Empty; // Alkatrész oldala
+
+        public string? Shape { get; set; } // Alkatrész alakja
+        public string? Size { get; set; } // Alkatrész mérete
+
+        public string? Type { get; set; } // Alkatrész leírása
+
+        public string? Material { get; set; } // Alkatrész anyaga
+        public string? Description { get; set; } // Alkatrész leírása
+
+        public int Quantity { get; set; } // Alkatrész mennyisége
+
+        public string? ImageUrl { get; set; } = string.Empty; // Alkatrész kép URL-je
     }
 }
