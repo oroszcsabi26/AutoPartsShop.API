@@ -98,7 +98,7 @@ namespace AutoPartsShop.API
             }
 
             app.UseHttpsRedirection();
-
+            app.UseStaticFiles();
             app.UseCors(MyAllowSpecificOrigins); //  CORS middleware bekapcsolása
 
             app.UseAuthentication(); //  Autentikáció bekapcsolása (JWT token ellenõrzés)

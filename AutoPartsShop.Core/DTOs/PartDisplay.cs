@@ -26,5 +26,6 @@ namespace AutoPartsShop.Core.DTOs
         public int CarModelId { get; set; }
 
         public int PartsCategoryId { get; set; }
+        public string? ImageUrl { get; set; }
     }
 }

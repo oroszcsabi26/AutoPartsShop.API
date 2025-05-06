@@ -6,26 +6,25 @@ namespace AutoPartsShop.Core.Models
     public class Equipment
     {
         [Key]
-        public int Id { get; set; } // Egyedi azonosító
+        public int Id { get; set; } 
 
         [Required]
-        public string Name { get; set; } = string.Empty; // A felszerelési cikk neve
+        public string Name { get; set; } = string.Empty; 
 
         [Required]
-        public string Manufacturer { get; set; } = string.Empty; // Gyártó neve (KÖTELEZŐ)
+        public string Manufacturer { get; set; } = string.Empty; 
 
-        public string? Size { get; set; } // Kiszerelési méret (NEM KÖTELEZŐ)
-
-        [Required]
-        public decimal Price { get; set; } // A felszerelési cikk ára
+        public string? Size { get; set; } 
 
         [Required]
-        public int EquipmentCategoryId { get; set; } // Kapcsolat a kategóriával (KÖTELEZŐ)
+        public decimal Price { get; set; } 
+
+        [Required]
+        public int EquipmentCategoryId { get; set; } 
 
         [ForeignKey("EquipmentCategoryId")]
-        public EquipmentCategory? EquipmentCategory { get; set; } // Egy felszerelési cikk egy kategóriába tartozik
+        public EquipmentCategory? EquipmentCategory { get; set; } 
 
-        //Új mezők
         public string? Description { get; set; }
 
         [Required]

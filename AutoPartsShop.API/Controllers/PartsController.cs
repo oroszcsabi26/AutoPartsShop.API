@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartsShop.API.Controllers
 {
-    [Route("api/parts")] // Az API végpont URL-je /api/parts lesz.
+    [Route("api/parts")] 
     [ApiController]
     public class PartsController : ControllerBase
     {
@@ -27,38 +27,6 @@ namespace AutoPartsShop.API.Controllers
                 .Include(p => p.CarModel)
                 .ToListAsync();
         }
-       
-        /*
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<PartDisplay>>> GetParts()
-        {
-            var parts = await _context.Parts
-                .Include(p => p.CarModel)
-                    .ThenInclude(cm => cm.CarBrand)
-                .Include(p => p.PartsCategory)
-                .ToListAsync();
-
-            var result = parts.Select(p => new PartDisplay
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Price = p.Price,
-                Manufacturer = p.Manufacturer ?? "",
-                Side = p.Side,
-                Shape = p.Shape,
-                Size = p.Size,
-                Type = p.Type,
-                Material = p.Material,
-                Description = p.Description,
-                Quantity = p.Quantity,
-                CategoryName = p.PartsCategory?.Name ?? "",
-                CarModelName = p.CarModel?.Name ?? "",
-                CarBrandName = p.CarModel?.CarBrand?.Name ?? ""
-            }).ToList();
-
-            return Ok(result);
-        }
-        */
 
         // Egy adott autómodell alkatrészeinek lekérése
         [HttpGet("carModel/{carModelId}")]
@@ -79,11 +47,10 @@ namespace AutoPartsShop.API.Controllers
             return parts;
         }
 
-        // Új alkatrész rögzítése
         [HttpPost]
-        public async Task<ActionResult<Part>> AddPart([FromBody] Part newPart)
+        public async Task<ActionResult<Part>> AddPart([FromForm] Part newPart, IFormFile? imageFile)
         {
-            // Ellenőrzés: Létezik-e a megadott autómodell és kategória
+            // Ellenőrzés: Autómodell és alkatrészkategória létezik-e
             var carModelExists = await _context.CarModels.AnyAsync(cm => cm.Id == newPart.CarModelId);
             var categoryExists = await _context.PartsCategories.AnyAsync(pc => pc.Id == newPart.PartsCategoryId);
 
@@ -98,9 +65,11 @@ namespace AutoPartsShop.API.Controllers
             }
 
             if (string.IsNullOrWhiteSpace(newPart.Manufacturer))
+            {
                 return BadRequest("A gyártó megadása kötelező!");
+            }
 
-            // Alapértelmezett értékek (ha a frontend nem küldi)
+            // Alapértelmezett értékek beállítása (null vagy üres mezők esetén)
             newPart.Quantity = newPart.Quantity == 0 ? 1 : newPart.Quantity;
             newPart.Description ??= "";
             newPart.Type ??= "";
@@ -109,14 +78,39 @@ namespace AutoPartsShop.API.Controllers
             newPart.Side ??= "";
             newPart.Material ??= "";
 
+            // Képfájl mentése, ha érkezett
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "parts");
+
+                // Mappa létrehozása, ha nem létezik
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await imageFile.CopyToAsync(stream);
+                }
+
+                // A kép relatív útvonalát elmentjük az adatbázisba
+                newPart.ImageUrl = $"/images/parts/{uniqueFileName}";
+            }
+
+            // 4Alkatrész mentése adatbázisba
             _context.Parts.Add(newPart);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetParts), new { id = newPart.Id }, newPart);
         }
 
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePart(int id, [FromBody] Part updatedPart)
+        public async Task<IActionResult> UpdatePart(int id, [FromForm] Part updatedPart, IFormFile? imageFile)
         {
             var part = await _context.Parts.FindAsync(id);
             if (part == null)
@@ -134,7 +128,6 @@ namespace AutoPartsShop.API.Controllers
             part.Price = updatedPart.Price;
             part.PartsCategoryId = updatedPart.PartsCategoryId;
             part.CarModelId = updatedPart.CarModelId;
-
             part.Manufacturer = updatedPart.Manufacturer;
             part.Quantity = updatedPart.Quantity;
             part.Side = updatedPart.Side;
@@ -143,6 +136,27 @@ namespace AutoPartsShop.API.Controllers
             part.Type = updatedPart.Type;
             part.Material = updatedPart.Material;
             part.Description = updatedPart.Description;
+
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "parts");
+
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await imageFile.CopyToAsync(stream);
+                }
+
+                // Régi kép törlését opcionálisan itt elvégezheted, ha szükséges
+                part.ImageUrl = $"/images/parts/{uniqueFileName}";
+            }
 
             await _context.SaveChangesAsync();
             return NoContent(); // 204 No Content, mert nincs visszaküldendő adat
@@ -209,7 +223,8 @@ namespace AutoPartsShop.API.Controllers
                 CarModelName = p.CarModel?.Name ?? "",
                 CarBrandName = p.CarModel?.CarBrand?.Name ?? "",
                 CarModelId = p.CarModelId,
-                PartsCategoryId = p.PartsCategoryId
+                PartsCategoryId = p.PartsCategoryId,
+                ImageUrl = p.ImageUrl
             }).ToList();
 
             return Ok(result);

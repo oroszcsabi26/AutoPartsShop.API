@@ -17,7 +17,7 @@ namespace AutoPartsShop.API.Controllers
             _context = context;
         }
 
-        // 🔹 Összes felszerelési cikk lekérése DTO-val
+        // Összes felszerelési cikk lekérése DTO-val
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EquipmentDisplay>>> GetEquipments()
         {
@@ -42,7 +42,7 @@ namespace AutoPartsShop.API.Controllers
             }).ToList();
         }
 
-        // 🔹 Egy adott kategória szerinti felszerelések DTO-val
+        // Egy adott kategória szerinti felszerelések DTO-val
         [HttpGet("category/{categoryId}")]
         public async Task<ActionResult<IEnumerable<EquipmentDisplay>>> GetEquipmentsByCategory(int categoryId)
         {
@@ -73,9 +73,8 @@ namespace AutoPartsShop.API.Controllers
             }).ToList();
         }
 
-        // 🔹 Új felszerelés hozzáadása (változatlan)
         [HttpPost]
-        public async Task<ActionResult<Equipment>> AddEquipment([FromBody] Equipment newEquipment)
+        public async Task<ActionResult<Equipment>> AddEquipment([FromForm] Equipment newEquipment, IFormFile? imageFile)
         {
             if (string.IsNullOrWhiteSpace(newEquipment.Name) || string.IsNullOrWhiteSpace(newEquipment.Manufacturer))
                 return BadRequest("A név és a gyártó megadása kötelező!");
@@ -86,13 +85,33 @@ namespace AutoPartsShop.API.Controllers
             if (!await _context.EquipmentCategories.AnyAsync(ec => ec.Id == newEquipment.EquipmentCategoryId))
                 return BadRequest($"Nincs ilyen kategória ID: {newEquipment.EquipmentCategoryId}");
 
+            // Kép mentése, ha van
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                var uploadsFolder = Path.Combine("wwwroot", "images", "equipments");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                } 
+
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await imageFile.CopyToAsync(stream);
+                }
+
+                newEquipment.ImageUrl = "/images/equipments/" + uniqueFileName;
+            }
+
             _context.Equipments.Add(newEquipment);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetEquipments), new { id = newEquipment.Id }, newEquipment);
         }
 
-        // 🔹 Felszerelés módosítása
+        // Felszerelés módosítása
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEquipment(int id, [FromBody] Equipment updatedEquipment)
         {
@@ -115,7 +134,7 @@ namespace AutoPartsShop.API.Controllers
             return NoContent();
         }
 
-        // 🔹 Felszerelés törlése
+        // Felszerelés törlése
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEquipment(int id)
         {
