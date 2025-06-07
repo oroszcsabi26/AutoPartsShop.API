@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using AutoPartsShop.Core.Enums;
 
 namespace AutoPartsShop.Core.Models
 {
@@ -12,6 +13,7 @@ namespace AutoPartsShop.Core.Models
 
         [Required]
         public int UserId { get; set; } // Felhasználó azonosítója
+
         [ForeignKey("UserId")]
         public User? User { get; set; }
 
@@ -19,7 +21,7 @@ namespace AutoPartsShop.Core.Models
         public DateTime OrderDate { get; set; } = DateTime.UtcNow; // Rendelés dátuma
 
         [Required]
-        public string Status { get; set; } = "Feldolgozás alatt"; // Rendelés állapota
+        public OrderStatus Status { get; set; } = OrderStatus.Feldolgozás; // Enum alapú állapot
 
         [Required]
         public string ShippingAddress { get; set; } = string.Empty; // Szállítási cím
@@ -30,7 +32,7 @@ namespace AutoPartsShop.Core.Models
         public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>(); // Rendelés tételei
 
         [MaxLength(200)]
-        public string? Comment { get; set; } // Opcionális megjegyzés mező (max 200 karakter)
+        public string? Comment { get; set; } // Opcionális megjegyzés
     }
 }
 

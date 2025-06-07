@@ -1,4 +1,6 @@
-﻿using AutoPartsShop.Core.Models;
+﻿using AutoPartsShop.Core.Enums;
+using AutoPartsShop.Core.Helpers;
+using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,16 +9,23 @@ using System.Security.Claims;
 
 namespace AutoPartsShop.API.Controllers
 {
+    public class UpdateStatusRequest
+    {
+        public string NewStatus { get; set; } = string.Empty;
+    }
+
     [Route("api/orders")]
     [ApiController]
     [Authorize] // Csak bejelentkezett felhasználók használhatják az Order API-t
     public class OrderController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public OrderController(AppDbContext context)
+        public OrderController(AppDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         // Rendelés létrehozása a bejelentkezett felhasználó számára
@@ -40,7 +49,7 @@ namespace AutoPartsShop.API.Controllers
             {
                 UserId = userId.Value,
                 OrderDate = DateTime.UtcNow,
-                Status = "Feldolgozás alatt",
+                Status = OrderStatus.Feldolgozás,
                 ShippingAddress = orderRequest.ShippingAddress, // Felhasználó által megadott
                 BillingAddress = orderRequest.BillingAddress,   // Felhasználó által megadott
                 Comment = orderRequest.Comment,                 // ÚJ: Megjegyzés
@@ -60,6 +69,32 @@ namespace AutoPartsShop.API.Controllers
             _context.Carts.Remove(cart); // Kosár törlése
 
             await _context.SaveChangesAsync();
+
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+
+                // Tétellista összeállítása
+                string itemList = string.Join("\n", newOrder.OrderItems.Select(item =>
+                    $"- {item.Name} ({item.Quantity} db) - {item.Price} Ft"
+                ));
+
+                string subject = "Rendelés megerősítve";
+                string body = $"Kedves {user.FirstName}!\n\n" +
+                              $"Köszönjük, hogy rendelést adtál le webáruházunkban!\n" +
+                              $"A rendelés azonosítója: #{newOrder.Id}\n" +
+                              $"Státusz: {newOrder.Status}\n\n" +
+                              $"Rendelt tételek:\n{itemList}\n\n" +
+                              $"Szállítási cím: {newOrder.ShippingAddress}\n" +
+                              $"Számlázási cím: {newOrder.BillingAddress}\n\n" +
+                              $"Üdvözlettel:\nAutoPartsShop";
+
+                await _emailService.SendEmailAsync(user.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Email küldési hiba (rendelés leadásakor): {ex.Message}");
+            }
 
             return Ok(new { message = "Rendelés sikeresen leadva!", orderId = newOrder.Id });
         }
@@ -143,14 +178,68 @@ namespace AutoPartsShop.API.Controllers
             if (user == null || !user.IsAdmin)
                 return Forbid("Nincs jogosultságod a rendelés törlésére!");
 
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == id);
             if (order == null)
                 return NotFound($"Nem található rendelés ezzel az ID-vel: {id}");
 
             _context.Orders.Remove(order);
             await _context.SaveChangesAsync();
 
+            try
+            {
+                var orderUser = await _context.Users.FindAsync(order.UserId);
+                await _emailService.SendEmailAsync(
+                    orderUser.Email,
+                    "Rendelés törölve",
+                    $"Kedves {orderUser.FirstName}!\n\nA(z) #{order.Id} számú rendelésed törlésre került.\n\nHa kérdésed van, keress minket bizalommal.\nÜdvözlettel:\nAutoPartsShop"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Email küldési hiba (törlés után): {ex.Message}");
+            }
+
             return Ok(new { message = "Rendelés törölve!" });
+        }
+
+        [HttpPut("update-status/{orderId}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] UpdateStatusRequest request)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized("Felhasználó azonosítása sikertelen!");
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || !user.IsAdmin)
+                return Forbid("Nincs jogosultságod a rendelés módosításához!");
+
+            var order = await _context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null)
+                return NotFound($"A rendelés nem található azonosítóval: {orderId}");
+
+            if (!Enum.TryParse<OrderStatus>(request.NewStatus, out var parsedStatus))
+                return BadRequest($"Érvénytelen rendelés státusz: {request.NewStatus}");
+
+            order.Status = parsedStatus;
+            await _context.SaveChangesAsync();
+
+            string subject = "Rendelés státusz frissítve";
+            string body = $"Kedves {order.User.FirstName}!\n\n" +
+                          $"A(z) #{order.Id} számú rendelésed új státusza: {parsedStatus}.\n\n" +
+                          $"Köszönjük, hogy nálunk vásároltál!\nAutoPartsShop";
+
+            try
+            {
+                await _emailService.SendEmailAsync(order.User.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                // Logoljuk az email küldési hibát, de ne akadályozzuk meg a státusz frissítését
+                Console.WriteLine($"Email küldési hiba: {ex.Message}");
+            }
+
+            return Ok(new { message = "Rendelés státusza frissítve!", newStatus = order.Status });
         }
     }
 }

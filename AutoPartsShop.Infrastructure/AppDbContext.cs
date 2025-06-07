@@ -115,6 +115,19 @@ namespace AutoPartsShop.Infrastructure
                 PhoneNumber = "+36123456789",
                 IsAdmin = true
             });
+
+            modelBuilder.Entity<Order>()
+            .Property(o => o.Status)
+            .HasConversion<string>(); // <-- enum -> string konvertálás
+
+            // Itt lehet a decimal típusokra is beállítani például:
+            modelBuilder.Entity<OrderItem>()
+                .Property(o => o.Price)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CartItem>()
+                .Property(c => c.Price)
+                .HasColumnType("decimal(18,2)");
         }
     }
 }

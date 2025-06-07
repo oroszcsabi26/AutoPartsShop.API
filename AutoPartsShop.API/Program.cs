@@ -1,9 +1,11 @@
+using AutoPartsShop.Core.Helpers;
 using AutoPartsShop.Infrastructure;
+using AutoPartsShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 namespace AutoPartsShop.API
 {
@@ -87,6 +89,8 @@ namespace AutoPartsShop.API
             //  Adatbázis kapcsolat beállítása
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             var app = builder.Build();
 

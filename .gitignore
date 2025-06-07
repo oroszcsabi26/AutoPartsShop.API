@@ -364,5 +364,7 @@ FodyWeavers.xsd
 
 # Ignore frontend folder
 AutoPartsShop.UI/
-AutoPartsShop.UI 
+AutoPartsShop.UI
+# Sensitive config files
+AutoPartsShop.API/appsettings.json
  
