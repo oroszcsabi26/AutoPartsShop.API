@@ -33,6 +33,14 @@ namespace AutoPartsShop.Core.Models
 
         [MaxLength(200)]
         public string? Comment { get; set; } // Opcionális megjegyzés
+
+        [Required]
+        public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Készpénz;
+
+        public int ExtraFee { get; set; } = 0;
+
+        [Required]
+        public ShippingMethod ShippingMethod { get; set; } 
     }
 }
 

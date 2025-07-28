@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace AutoPartsShop.API
 {
@@ -22,7 +23,9 @@ namespace AutoPartsShop.API
                 options.AddPolicy(MyAllowSpecificOrigins,
                     policy =>
                     {
-                        policy.WithOrigins("http://localhost:4200") // Az Angular fejlesztõi szerver URL-je
+                        policy.WithOrigins(
+                            "http://localhost:4200",
+                            "https://autopartsshopfrontend-azc2b6ajfyggapgg.northeurope-01.azurewebsites.net") // Az Angular fejlesztõi szerver URL-je
                               .AllowAnyHeader()
                               .AllowAnyMethod()
                               .AllowCredentials(); // Engedélyezi a hitelesítési adatok küldését (JWT)
@@ -53,6 +56,7 @@ namespace AutoPartsShop.API
             {
                 options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
                 options.JsonSerializerOptions.WriteIndented = true;
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
             builder.Services.AddControllers();
@@ -95,7 +99,7 @@ namespace AutoPartsShop.API
             var app = builder.Build();
 
             // Middleware konfiguráció
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
@@ -105,11 +109,14 @@ namespace AutoPartsShop.API
             app.UseStaticFiles();
             app.UseCors(MyAllowSpecificOrigins); //  CORS middleware bekapcsolása
 
+            app.UseDefaultFiles();
+            app.UseRouting();
+
             app.UseAuthentication(); //  Autentikáció bekapcsolása (JWT token ellenõrzés)
             app.UseAuthorization(); //  Jogosultságkezelés bekapcsolása
 
             app.MapControllers();
-
+            app.MapFallbackToFile("/browser/{*path:nonfile}", "/browser/index.html");
             app.Run();
         }
     }

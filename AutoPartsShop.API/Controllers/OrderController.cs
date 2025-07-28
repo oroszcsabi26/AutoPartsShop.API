@@ -32,6 +32,11 @@ namespace AutoPartsShop.API.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateOrder([FromBody] Order orderRequest)
         {
+            Console.WriteLine("Rendelés létrehozása...");
+
+            if (!ModelState.IsValid)
+                return BadRequest("Érvénytelen rendelési adatok!");
+
             var userId = GetUserId();
             if (userId == null)
                 return Unauthorized("Felhasználó azonosítása sikertelen!");
@@ -44,22 +49,31 @@ namespace AutoPartsShop.API.Controllers
             if (cart == null || !cart.Items.Any())
                 return BadRequest("A kosár üres! Nem lehet rendelést leadni.");
 
+            int extraFee = 0;
+            if (orderRequest.PaymentMethod == PaymentMethod.Készpénz || orderRequest.PaymentMethod == PaymentMethod.Bankkártyaátvételkor)
+            {
+                extraFee = 1000;
+            }
+
             // új rendelés létrehozása
             var newOrder = new Order
             {
                 UserId = userId.Value,
                 OrderDate = DateTime.UtcNow,
                 Status = OrderStatus.Feldolgozás,
-                ShippingAddress = orderRequest.ShippingAddress, // Felhasználó által megadott
-                BillingAddress = orderRequest.BillingAddress,   // Felhasználó által megadott
-                Comment = orderRequest.Comment,                 // ÚJ: Megjegyzés
+                ShippingAddress = orderRequest.ShippingAddress,
+                BillingAddress = orderRequest.BillingAddress,
+                Comment = orderRequest.Comment,
+                PaymentMethod = orderRequest.PaymentMethod,
+                ExtraFee = orderRequest.ExtraFee,
+                ShippingMethod = orderRequest.ShippingMethod,
                 OrderItems = cart.Items.Select(ci => new OrderItem
                 {
                     ItemType = ci.ItemType,
                     PartId = ci.PartId,
                     EquipmentId = ci.EquipmentId,
                     Quantity = ci.Quantity,
-                    Price = ci.Price,
+                    Price = ci.Price + extraFee,
                     Name = ci.Name
                 }).ToList()
             };
@@ -87,6 +101,8 @@ namespace AutoPartsShop.API.Controllers
                               $"Rendelt tételek:\n{itemList}\n\n" +
                               $"Szállítási cím: {newOrder.ShippingAddress}\n" +
                               $"Számlázási cím: {newOrder.BillingAddress}\n\n" +
+                              $"Szállítási mód: {newOrder.ShippingMethod}\n" +
+                              $"Fizetési mód: {newOrder.PaymentMethod}\n\n" +
                               $"Üdvözlettel:\nAutoPartsShop";
 
                 await _emailService.SendEmailAsync(user.Email, subject, body);

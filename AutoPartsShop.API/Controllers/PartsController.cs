@@ -98,7 +98,9 @@ namespace AutoPartsShop.API.Controllers
                 }
 
                 // A kép relatív útvonalát elmentjük az adatbázisba
-                newPart.ImageUrl = $"/images/parts/{uniqueFileName}";
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                newPart.ImageUrl = $"{baseUrl}/images/parts/{uniqueFileName}";
+
             }
 
             // 4Alkatrész mentése adatbázisba
@@ -155,7 +157,9 @@ namespace AutoPartsShop.API.Controllers
                 }
 
                 // Régi kép törlését opcionálisan itt elvégezheted, ha szükséges
-                part.ImageUrl = $"/images/parts/{uniqueFileName}";
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                part.ImageUrl = $"{baseUrl}/images/parts/{uniqueFileName}";
+
             }
 
             await _context.SaveChangesAsync();
