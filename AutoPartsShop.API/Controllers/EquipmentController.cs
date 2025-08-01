@@ -1,4 +1,5 @@
-﻿using AutoPartsShop.Core.DTOs;
+﻿using AutoPartShop.Core.Helpers;
+using AutoPartsShop.Core.DTOs;
 using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace AutoPartsShop.API.Controllers
     public class EquipmentController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly AzureBlobStorageService _blobStorageService;
 
-        public EquipmentController(AppDbContext context)
+        public EquipmentController(AppDbContext context, AzureBlobStorageService blobStorageService)
         {
             _context = context;
+            _blobStorageService = blobStorageService;
         }
 
         // Összes felszerelési cikk lekérése DTO-val
@@ -88,21 +91,8 @@ namespace AutoPartsShop.API.Controllers
             // Kép mentése, ha van
             if (imageFile != null && imageFile.Length > 0)
             {
-                var uploadsFolder = Path.Combine("wwwroot", "images", "equipments");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                } 
-
-                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await imageFile.CopyToAsync(stream);
-                }
-
-                newEquipment.ImageUrl = "/images/equipments/" + uniqueFileName;
+                using var stream = imageFile.OpenReadStream();
+                newEquipment.ImageUrl = await _blobStorageService.UploadFileAsync(stream, imageFile.FileName);
             }
 
             _context.Equipments.Add(newEquipment);
@@ -111,9 +101,9 @@ namespace AutoPartsShop.API.Controllers
             return CreatedAtAction(nameof(GetEquipments), new { id = newEquipment.Id }, newEquipment);
         }
 
-        // Felszerelés módosítása
+        // Felszerelés módosítása (Angularban még úgy van beállítva hogy nem küldi a képet is, ezt módosítani kell!!)
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEquipment(int id, [FromBody] Equipment updatedEquipment)
+        public async Task<IActionResult> UpdateEquipment(int id, [FromBody] Equipment updatedEquipment, IFormFile? imageFile)
         {
             var existingEquipment = await _context.Equipments.FindAsync(id);
             if (existingEquipment == null)
@@ -129,6 +119,13 @@ namespace AutoPartsShop.API.Controllers
             existingEquipment.Material = updatedEquipment.Material;
             existingEquipment.Side = updatedEquipment.Side;
             existingEquipment.EquipmentCategoryId = updatedEquipment.EquipmentCategoryId;
+
+            // Új kép feltöltése, ha van
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                using var stream = imageFile.OpenReadStream();
+                existingEquipment.ImageUrl = await _blobStorageService.UploadFileAsync(stream, imageFile.FileName);
+            }
 
             await _context.SaveChangesAsync();
             return NoContent();

@@ -1,3 +1,4 @@
+using AutoPartShop.Core.Helpers;
 using AutoPartsShop.Core.Helpers;
 using AutoPartsShop.Infrastructure;
 using AutoPartsShop.Infrastructure.Services;
@@ -95,6 +96,7 @@ namespace AutoPartsShop.API
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddSingleton<AzureBlobStorageService>();
 
             var app = builder.Build();
 

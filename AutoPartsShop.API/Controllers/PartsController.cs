@@ -1,4 +1,5 @@
-﻿using AutoPartsShop.Core.DTOs;
+﻿using AutoPartShop.Core.Helpers;
+using AutoPartsShop.Core.DTOs;
 using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -7,15 +8,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartsShop.API.Controllers
 {
-    [Route("api/parts")] 
+    [Route("api/parts")]
     [ApiController]
     public class PartsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly AzureBlobStorageService _blobStorageService;
 
-        public PartsController(AppDbContext context)
+        public PartsController(AppDbContext context, AzureBlobStorageService blobStorageService)
         {
             _context = context;
+            _blobStorageService = blobStorageService;
         }
 
         // Összes alkatrész lekérése
@@ -81,26 +84,9 @@ namespace AutoPartsShop.API.Controllers
             // Képfájl mentése, ha érkezett
             if (imageFile != null && imageFile.Length > 0)
             {
-                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "parts");
-
-                // Mappa létrehozása, ha nem létezik
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-
-                string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
-                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await imageFile.CopyToAsync(stream);
-                }
-
-                // A kép relatív útvonalát elmentjük az adatbázisba
-                var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                newPart.ImageUrl = $"{baseUrl}/images/parts/{uniqueFileName}";
-
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                string imageUrl = await _blobStorageService.UploadFileAsync(imageFile.OpenReadStream(), fileName);
+                newPart.ImageUrl = imageUrl;
             }
 
             // 4Alkatrész mentése adatbázisba
@@ -109,7 +95,6 @@ namespace AutoPartsShop.API.Controllers
 
             return CreatedAtAction(nameof(GetParts), new { id = newPart.Id }, newPart);
         }
-
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePart(int id, [FromForm] Part updatedPart, IFormFile? imageFile)
@@ -141,25 +126,9 @@ namespace AutoPartsShop.API.Controllers
 
             if (imageFile != null && imageFile.Length > 0)
             {
-                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "parts");
-
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-
-                string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
-                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await imageFile.CopyToAsync(stream);
-                }
-
-                // Régi kép törlését opcionálisan itt elvégezheted, ha szükséges
-                var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                part.ImageUrl = $"{baseUrl}/images/parts/{uniqueFileName}";
-
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                string imageUrl = await _blobStorageService.UploadFileAsync(imageFile.OpenReadStream(), fileName);
+                part.ImageUrl = imageUrl;
             }
 
             await _context.SaveChangesAsync();
