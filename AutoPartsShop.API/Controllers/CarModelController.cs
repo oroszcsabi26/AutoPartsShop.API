@@ -100,6 +100,44 @@ namespace AutoPartsShop.API.Controllers
 
             return NoContent();
         }
+
+        // Motorváltozatok lekérdezése adott autómárka ID, modellnév és évjárat alapján
+        [HttpGet("brandId/{brandId}/modelName/{modelName}/year/{year}/engine-options")]
+        public async Task<ActionResult<IEnumerable<string>>> GetEngineOptions(int brandId, string modelName, int year)
+        {
+            var engines = await _context.CarModels
+                .Where(cm =>
+                    cm.CarBrandId == brandId &&
+                    cm.Name.ToLower() == modelName.ToLower() &&
+                    cm.Year == year)
+                .Select(cm => cm.FuelType + "/" + cm.EngineSize)
+                .Distinct()
+                .ToListAsync();
+
+            if (!engines.Any())
+            {
+                return NotFound("Nem találhatók motorváltozatok a megadott paraméterekre.");
+            }
+
+            return Ok(engines);
+        }
+
+        [HttpGet("compatible-years/model/{modelId}")]
+        public async Task<ActionResult<IEnumerable<int>>> GetCompatibleYearsByModel(int modelId)
+        {
+            var years = await _context.CarModels
+                .Where(cm => cm.Id == modelId)
+                .Select(cm => cm.Year)
+                .Distinct()
+                .ToListAsync();
+
+            if (!years.Any())
+            {
+                return NotFound("Nem találhatók évjáratok a megadott modellhez.");
+            }
+
+            return Ok(years);
+        }
     }
 }
 

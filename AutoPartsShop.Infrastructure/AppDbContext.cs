@@ -48,6 +48,11 @@ namespace AutoPartsShop.Infrastructure
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)"); // 18 számjegy, 2 tizedesjegy
 
+            p_modelBuilder.Entity<Part>()
+                .Property(p => p.CompatibleYearsRaw)
+                .HasColumnName("CompatibleYears"); // SQL tábla mezőnév
+
+
             // Egy EquipmentCategory-hoz több Equipment tartozhat (1:N kapcsolat)
             p_modelBuilder.Entity<Equipment>()
                 .HasOne(e => e.EquipmentCategory)

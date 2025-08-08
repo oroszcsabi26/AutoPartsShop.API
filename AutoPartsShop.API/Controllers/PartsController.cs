@@ -32,22 +32,37 @@ namespace AutoPartsShop.API.Controllers
         }
 
         // Egy adott autómodell alkatrészeinek lekérése
-        [HttpGet("carModel/{carModelId}")]
-        public async Task<ActionResult<IEnumerable<Part>>> GetPartsByCarModel(int carModelId)
+        [HttpGet("carModel/{carModelId}/year/{year}")]
+        public async Task<ActionResult<IEnumerable<Part>>> GetPartsByCarModelAndYear(int carModelId, int year, [FromQuery] string? fuelType, [FromQuery] int? engineSize)
         {
             var parts = await _context.Parts
                 .Where(p => p.CarModelId == carModelId)
                 .Include(p => p.PartsCategory)
                 .Include(p => p.CarModel)
-                .Include(p => p.CarModel.CarBrand)
+                .ThenInclude(cm => cm.CarBrand)
                 .ToListAsync();
+
+            // Szűrés évjárat alapján
+            parts = parts.Where(p =>
+                p.CompatibleManufacturingYears.Contains(year)
+            ).ToList();
+
+            // Szűrés üzemanyag és motor méret szerint (ha meg vannak adva)
+            if (!string.IsNullOrEmpty(fuelType) && engineSize.HasValue)
+            {
+                parts = parts.Where(p =>
+                    p.CarModel != null &&
+                    p.CarModel.FuelType.ToLower() == fuelType.ToLower() &&
+                    p.CarModel.EngineSize == engineSize.Value
+                ).ToList();
+            }
 
             if (!parts.Any())
             {
-                return NotFound($"Nincs alkatrész ezzel az autómodell ID-vel: {carModelId}");
+                return NotFound("Nincs az adott szűrési feltételeknek megfelelő alkatrész.");
             }
 
-            return parts;
+            return Ok(parts);
         }
 
         [HttpPost]
@@ -150,14 +165,14 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<PartDisplay>>> SearchParts([FromQuery] string? name, [FromQuery] int? carModelId, [FromQuery] int? partsCategoryId)
+        public async Task<ActionResult<IEnumerable<PartDisplay>>> SearchParts([FromQuery] string? name, [FromQuery] int? carModelId, [FromQuery] int? partsCategoryId, [FromQuery] int? year, [FromQuery] string? fuelType, [FromQuery] int? engineSize)
         {
             IQueryable<Part> query = _context.Parts
                 .Include(p => p.CarModel)
-                    .ThenInclude(cm => cm.CarBrand)
+                .ThenInclude(cm => cm.CarBrand)
                 .Include(p => p.PartsCategory);
 
-            if (!carModelId.HasValue && !partsCategoryId.HasValue)
+            if (!carModelId.HasValue && !partsCategoryId.HasValue && !year.HasValue)
             {
                 return BadRequest("Legalább egy szűrési feltétel (autómodell vagy alkatrész kategória) szükséges!");
             }
@@ -178,6 +193,22 @@ namespace AutoPartsShop.API.Controllers
             }
 
             var parts = await query.ToListAsync();
+
+            if (year.HasValue)
+            {
+                parts = parts.Where(p =>
+                    p.CompatibleManufacturingYears.Contains(year.Value)
+                ).ToList();
+            }
+
+            if (!string.IsNullOrEmpty(fuelType) && engineSize.HasValue)
+            {
+                parts = parts.Where(p =>
+                    p.CarModel != null &&
+                    p.CarModel.FuelType.ToLower() == fuelType.ToLower() &&
+                    p.CarModel.EngineSize == engineSize.Value
+                ).ToList();
+            }
 
             var result = parts.Select(p => new PartDisplay
             {

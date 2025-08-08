@@ -22,5 +22,9 @@ namespace AutoPartsShop.Core.Models
         public CarBrand? CarBrand { get; set; } // Ezt `nullable`-re tettük (?)
 
         public List<Part> Parts { get; set; } = new List<Part>(); // Kapcsolat az alkatrészekkel
+    
+        public string FuelType { get; set; } = string.Empty; // Üzemanyag típusa (pl. benzin, dízel, elektromos)
+
+        public int EngineSize { get; set; } // Motor mérete (pl. 1600cc)
     }
 }

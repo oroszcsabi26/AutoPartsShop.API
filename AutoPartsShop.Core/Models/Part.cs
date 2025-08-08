@@ -47,5 +47,16 @@ namespace AutoPartsShop.Core.Models
         public int Quantity { get; set; } // Alkatrész mennyisége
 
         public string? ImageUrl { get; set; } = string.Empty; // Alkatrész kép URL-je
+
+        [NotMapped]
+        public int[] CompatibleManufacturingYears { get; set; } = Array.Empty<int>();
+
+        public string CompatibleYearsRaw
+        {
+            get => string.Join(",", CompatibleManufacturingYears);
+            set => CompatibleManufacturingYears = string.IsNullOrWhiteSpace(value)
+                ? Array.Empty<int>()
+                : value.Split(',').Select(int.Parse).ToArray();
+        }
     }
 }
