@@ -16,21 +16,20 @@ namespace AutoPartsShop.API.Controllers
 
     [Route("api/orders")]
     [ApiController]
-    [Authorize] // Csak bejelentkezett felhasználók használhatják az Order API-t
+    [Authorize] 
     public class OrderController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IEmailService _emailService;
+        private readonly AppDbContext m_context;
+        private readonly IEmailService m_emailService;
 
         public OrderController(AppDbContext context, IEmailService emailService)
         {
-            _context = context;
-            _emailService = emailService;
+            m_context = context;
+            m_emailService = emailService;
         }
 
-        // Rendelés létrehozása a bejelentkezett felhasználó számára
         [HttpPost("create")]
-        public async Task<IActionResult> CreateOrder([FromBody] Order orderRequest)
+        public async Task<IActionResult> CreateOrder([FromBody] Order p_orderRequest)
         {
             Console.WriteLine("Rendelés létrehozása...");
 
@@ -41,8 +40,7 @@ namespace AutoPartsShop.API.Controllers
             if (userId == null)
                 return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-            // Ellenőrizzük, hogy a felhasználónak van-e kosara
-            var cart = await _context.Carts
+            var cart = await m_context.Carts
                 .Include(c => c.Items)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
@@ -50,23 +48,22 @@ namespace AutoPartsShop.API.Controllers
                 return BadRequest("A kosár üres! Nem lehet rendelést leadni.");
 
             int extraFee = 0;
-            if (orderRequest.PaymentMethod == PaymentMethod.Készpénz || orderRequest.PaymentMethod == PaymentMethod.Bankkártyaátvételkor)
+            if (p_orderRequest.PaymentMethod == PaymentMethod.Készpénz || p_orderRequest.PaymentMethod == PaymentMethod.Bankkártyaátvételkor)
             {
                 extraFee = 1000;
             }
 
-            // új rendelés létrehozása
             var newOrder = new Order
             {
                 UserId = userId.Value,
                 OrderDate = DateTime.UtcNow,
                 Status = OrderStatus.Feldolgozás,
-                ShippingAddress = orderRequest.ShippingAddress,
-                BillingAddress = orderRequest.BillingAddress,
-                Comment = orderRequest.Comment,
-                PaymentMethod = orderRequest.PaymentMethod,
-                ExtraFee = orderRequest.ExtraFee,
-                ShippingMethod = orderRequest.ShippingMethod,
+                ShippingAddress = p_orderRequest.ShippingAddress,
+                BillingAddress = p_orderRequest.BillingAddress,
+                Comment = p_orderRequest.Comment,
+                PaymentMethod = p_orderRequest.PaymentMethod,
+                ExtraFee = p_orderRequest.ExtraFee,
+                ShippingMethod = p_orderRequest.ShippingMethod,
                 OrderItems = cart.Items.Select(ci => new OrderItem
                 {
                     ItemType = ci.ItemType,
@@ -78,17 +75,16 @@ namespace AutoPartsShop.API.Controllers
                 }).ToList()
             };
 
-            _context.Orders.Add(newOrder);
-            _context.CartItems.RemoveRange(cart.Items); // Kosár kiürítése
-            _context.Carts.Remove(cart); // Kosár törlése
+            m_context.Orders.Add(newOrder);
+            m_context.CartItems.RemoveRange(cart.Items); 
+            m_context.Carts.Remove(cart); 
 
-            await _context.SaveChangesAsync();
+            await m_context.SaveChangesAsync();
 
             try
             {
-                var user = await _context.Users.FindAsync(userId);
+                var user = await m_context.Users.FindAsync(userId);
 
-                // Tétellista összeállítása
                 string itemList = string.Join("\n", newOrder.OrderItems.Select(item =>
                     $"- {item.Name} ({item.Quantity} db) - {item.Price} Ft"
                 ));
@@ -105,7 +101,7 @@ namespace AutoPartsShop.API.Controllers
                               $"Fizetési mód: {newOrder.PaymentMethod}\n\n" +
                               $"Üdvözlettel:\nAutoPartsShop";
 
-                await _emailService.SendEmailAsync(user.Email, subject, body);
+                await m_emailService.SendEmailAsync(user.Email, subject, body);
             }
             catch (Exception ex)
             {
@@ -115,7 +111,6 @@ namespace AutoPartsShop.API.Controllers
             return Ok(new { message = "Rendelés sikeresen leadva!", orderId = newOrder.Id });
         }
 
-        // A bejelentkezett felhasználó rendelési adatainak betöltése
         [HttpGet("user-data")]
         public async Task<IActionResult> GetUserOrderData()
         {
@@ -123,7 +118,7 @@ namespace AutoPartsShop.API.Controllers
             if (userId == null)
                 return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await m_context.Users.FindAsync(userId);
             if (user == null)
                 return NotFound("Felhasználó nem található!");
 
@@ -132,11 +127,10 @@ namespace AutoPartsShop.API.Controllers
                 name = $"{user.FirstName} {user.LastName}",
                 phoneNumber = user.PhoneNumber,
                 shippingAddress = user.ShippingAddress,
-                billingAddress = user.Address // Alapértelmezett számlázási cím
+                billingAddress = user.Address 
             });
         }
 
-        // Segédfüggvény a bejelentkezett felhasználó azonosítójának lekérésére
         private int? GetUserId()
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
@@ -150,7 +144,7 @@ namespace AutoPartsShop.API.Controllers
             if (userId == null)
                 return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-            var orders = await _context.Orders
+            var orders = await m_context.Orders
                 .Where(o => o.UserId == userId)
                 .Include(o => o.OrderItems)
                 .OrderByDescending(o => o.OrderDate)
@@ -159,20 +153,19 @@ namespace AutoPartsShop.API.Controllers
             return Ok(orders);
         }
 
-        // Összes rendelés lekérése admin számára
         [HttpGet("all")]
-        [Authorize] // Csak bejelentkezett adminok érhetik el
+        [Authorize] 
         public async Task<IActionResult> GetAllOrders()
         {
             var userId = GetUserId();
             if (userId == null)
                 return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await m_context.Users.FindAsync(userId);
             if (user == null || !user.IsAdmin)
                 return Forbid("Nincs jogosultságod az összes rendelés lekérdezésére!");
 
-            var orders = await _context.Orders
+            var orders = await m_context.Orders
                 .Include(o => o.User)
                 .Include(o => o.OrderItems)
                 .OrderByDescending(o => o.OrderDate)
@@ -181,30 +174,29 @@ namespace AutoPartsShop.API.Controllers
             return Ok(orders);
         }
 
-        // Rendelés törlése (csak admin)
         [HttpDelete("delete/{id}")]
         [Authorize]
-        public async Task<IActionResult> DeleteOrder(int id)
+        public async Task<IActionResult> DeleteOrder(int p_id)
         {
             var userId = GetUserId();
             if (userId == null)
                 return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await m_context.Users.FindAsync(userId);
             if (user == null || !user.IsAdmin)
                 return Forbid("Nincs jogosultságod a rendelés törlésére!");
 
-            var order = await _context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == id);
+            var order = await m_context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == p_id);
             if (order == null)
-                return NotFound($"Nem található rendelés ezzel az ID-vel: {id}");
+                return NotFound($"Nem található rendelés ezzel az ID-vel: {p_id}");
 
-            _context.Orders.Remove(order);
-            await _context.SaveChangesAsync();
+            m_context.Orders.Remove(order);
+            await m_context.SaveChangesAsync();
 
             try
             {
-                var orderUser = await _context.Users.FindAsync(order.UserId);
-                await _emailService.SendEmailAsync(
+                var orderUser = await m_context.Users.FindAsync(order.UserId);
+                await m_emailService.SendEmailAsync(
                     orderUser.Email,
                     "Rendelés törölve",
                     $"Kedves {orderUser.FirstName}!\n\nA(z) #{order.Id} számú rendelésed törlésre került.\n\nHa kérdésed van, keress minket bizalommal.\nÜdvözlettel:\nAutoPartsShop"
@@ -220,25 +212,25 @@ namespace AutoPartsShop.API.Controllers
 
         [HttpPut("update-status/{orderId}")]
         [Authorize]
-        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] UpdateStatusRequest request)
+        public async Task<IActionResult> UpdateOrderStatus(int p_orderId, [FromBody] UpdateStatusRequest p_request)
         {
             var userId = GetUserId();
             if (userId == null)
                 return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await m_context.Users.FindAsync(userId);
             if (user == null || !user.IsAdmin)
                 return Forbid("Nincs jogosultságod a rendelés módosításához!");
 
-            var order = await _context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == orderId);
+            var order = await m_context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == p_orderId);
             if (order == null)
-                return NotFound($"A rendelés nem található azonosítóval: {orderId}");
+                return NotFound($"A rendelés nem található azonosítóval: {p_orderId}");
 
-            if (!Enum.TryParse<OrderStatus>(request.NewStatus, out var parsedStatus))
-                return BadRequest($"Érvénytelen rendelés státusz: {request.NewStatus}");
+            if (!Enum.TryParse<OrderStatus>(p_request.NewStatus, out var parsedStatus))
+                return BadRequest($"Érvénytelen rendelés státusz: {p_request.NewStatus}");
 
             order.Status = parsedStatus;
-            await _context.SaveChangesAsync();
+            await m_context.SaveChangesAsync();
 
             string subject = "Rendelés státusz frissítve";
             string body = $"Kedves {order.User.FirstName}!\n\n" +
@@ -247,11 +239,10 @@ namespace AutoPartsShop.API.Controllers
 
             try
             {
-                await _emailService.SendEmailAsync(order.User.Email, subject, body);
+                await m_emailService.SendEmailAsync(order.User.Email, subject, body);
             }
             catch (Exception ex)
             {
-                // Logoljuk az email küldési hibát, de ne akadályozzuk meg a státusz frissítését
                 Console.WriteLine($"Email küldési hiba: {ex.Message}");
             }
 

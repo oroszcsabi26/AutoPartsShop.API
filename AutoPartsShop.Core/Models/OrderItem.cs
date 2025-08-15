@@ -6,15 +6,15 @@ namespace AutoPartsShop.Core.Models
     public class OrderItem
     {
         [Key]
-        public int Id { get; set; } // Egyedi azonosító
+        public int Id { get; set; } 
 
         [Required]
-        public int OrderId { get; set; } // Rendelés azonosítója
+        public int OrderId { get; set; } 
         [ForeignKey("OrderId")]
         public Order? Order { get; set; }
 
         [Required]
-        public string ItemType { get; set; } = "Part"; // "Part" vagy "Equipment"
+        public string ItemType { get; set; } = "Part"; 
 
         public int? PartId { get; set; }
         [ForeignKey("PartId")]
@@ -25,12 +25,12 @@ namespace AutoPartsShop.Core.Models
         public Equipment? Equipment { get; set; }
 
         [Required]
-        public int Quantity { get; set; } = 1; // Mennyiség
+        public int Quantity { get; set; } = 1; 
 
         [Required]
-        public decimal Price { get; set; } // Ár
+        public decimal Price { get; set; } 
 
         [Required]
-        public string Name { get; set; } = string.Empty; // Termék neve
+        public string Name { get; set; } = string.Empty; 
     }
 }

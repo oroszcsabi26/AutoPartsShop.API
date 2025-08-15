@@ -1,29 +1,28 @@
-﻿using AutoPartsShop.Core.Models;
+﻿using AutoPartsShop.Core.Helpers;
+using AutoPartsShop.Core.Models;
 using Microsoft.EntityFrameworkCore;
-using AutoPartsShop.Core.Helpers;
+using System.Reflection.Emit;
 
 namespace AutoPartsShop.Infrastructure
 {
-    // Az adatbázis-kapcsolati osztály az Entity Framework számára
     public class AppDbContext : DbContext
     {
-        // Beállítja az adatbázis kapcsolat konfigurációját
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        public AppDbContext(DbContextOptions<AppDbContext> p_options) : base(p_options)
         {
         }
-
-        // DbSet-ek (ezekből lesznek az adatbázis táblák)
         public DbSet<CarBrand> CarBrands { get; set; }
         public DbSet<CarModel> CarModels { get; set; }
-        public DbSet<PartsCategory> PartsCategories { get; set; } // Alkatrész kategóriák táblája
-        public DbSet<Part> Parts { get; set; } // Alkatrészek táblája
+        public DbSet<PartsCategory> PartsCategories { get; set; } 
+        public DbSet<Part> Parts { get; set; } 
         public DbSet<EquipmentCategory> EquipmentCategories { get; set; }
         public DbSet<Equipment> Equipments { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
-        public DbSet<User> Users { get; set; } // Felhasználók táblája
+        public DbSet<User> Users { get; set; } 
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<EngineVariant> EngineVariants { get; set; }
+        public DbSet<PartEngineVariant> PartEngineVariants { get; set; }
 
         protected override void OnModelCreating(ModelBuilder p_modelBuilder)
         {
@@ -46,12 +45,7 @@ namespace AutoPartsShop.Infrastructure
             // Alkatrész árának pontos SQL típusa, hogy ne legyen adatvesztés
             p_modelBuilder.Entity<Part>()
                 .Property(p => p.Price)
-                .HasColumnType("decimal(18,2)"); // 18 számjegy, 2 tizedesjegy
-
-            p_modelBuilder.Entity<Part>()
-                .Property(p => p.CompatibleYearsRaw)
-                .HasColumnName("CompatibleYears"); // SQL tábla mezőnév
-
+                .HasColumnType("decimal(18,2)"); 
 
             // Egy EquipmentCategory-hoz több Equipment tartozhat (1:N kapcsolat)
             p_modelBuilder.Entity<Equipment>()
@@ -86,40 +80,25 @@ namespace AutoPartsShop.Infrastructure
                 .HasOne(o => o.User)
                 .WithMany(u => u.Orders)
                 .HasForeignKey(o => o.UserId)
-                .OnDelete(DeleteBehavior.Cascade); // Ha a felhasználó törlődik, a rendelései is törlődnek
+                .OnDelete(DeleteBehavior.Cascade); 
 
-            // Egy rendelés több OrderItem-et is tartalmazhat (1:N kapcsolat)
             p_modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Order)
                 .WithMany(o => o.OrderItems)
                 .HasForeignKey(oi => oi.OrderId)
-                .OnDelete(DeleteBehavior.Cascade); // Ha a rendelés törlődik, a rendelési tételek is törlődnek
+                .OnDelete(DeleteBehavior.Cascade); 
 
-            // Egy OrderItem vagy egy alkatrészre, vagy egy felszerelésre hivatkozik (opcionális)
             p_modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Part)
                 .WithMany()
                 .HasForeignKey(oi => oi.PartId)
-                .OnDelete(DeleteBehavior.Restrict); // Alkatrészek ne törlődjenek a rendelésekkel
+                .OnDelete(DeleteBehavior.Restrict); 
 
             p_modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Equipment)
                 .WithMany()
                 .HasForeignKey(oi => oi.EquipmentId)
-                .OnDelete(DeleteBehavior.Restrict); // Felszerelések ne törlődjenek a rendelésekkel
-
-            p_modelBuilder.Entity<User>().HasData(new User
-            {
-                Id = -1,
-                FirstName = "Admin",
-                LastName = "User",
-                Email = "admin@autopartsshop.com",
-                PasswordHash = PasswordHelper.HashPassword("Admin123!"), // Hash-elt jelszó
-                Address = "Admin Street 1",
-                ShippingAddress = "Admin Street 1",
-                PhoneNumber = "+36123456789",
-                IsAdmin = true
-            });
+                .OnDelete(DeleteBehavior.Restrict); 
 
             p_modelBuilder.Entity<Order>()
                 .Property(o => o.Status)
@@ -133,7 +112,6 @@ namespace AutoPartsShop.Infrastructure
                 .Property(o => o.PaymentMethod)
                 .HasConversion<string>();
 
-            // Itt lehet a decimal típusokra is beállítani például:
             p_modelBuilder.Entity<OrderItem>()
                 .Property(o => o.Price)
                 .HasColumnType("decimal(18,2)");
@@ -141,6 +119,21 @@ namespace AutoPartsShop.Infrastructure
             p_modelBuilder.Entity<CartItem>()
                 .Property(c => c.Price)
                 .HasColumnType("decimal(18,2)");
+
+            p_modelBuilder.Entity<PartEngineVariant>()
+                .HasKey(pev => new { pev.PartId, pev.EngineVariantId });
+
+            p_modelBuilder.Entity<PartEngineVariant>()
+                .HasOne(pev => pev.Part)
+                .WithMany(p => p.PartEngineVariants)
+                .HasForeignKey(pev => pev.PartId)
+                .OnDelete(DeleteBehavior.Cascade);   
+
+            p_modelBuilder.Entity<PartEngineVariant>()
+                .HasOne(pev => pev.EngineVariant)
+                .WithMany(ev => ev.PartEngineVariants)
+                .HasForeignKey(pev => pev.EngineVariantId)
+                .OnDelete(DeleteBehavior.Restrict);  
         }
     }
 }

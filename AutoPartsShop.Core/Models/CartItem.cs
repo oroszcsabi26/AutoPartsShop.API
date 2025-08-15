@@ -7,17 +7,17 @@ public class CartItem
     public int Id { get; set; }
 
     [Required]
-    public int CartId { get; set; } // Kosár azonosító
+    public int CartId { get; set; } 
     public Cart? Cart { get; set; }
 
-    public int? PartId { get; set; } // Alkatrész azonosító
+    public int? PartId { get; set; } 
     public Part? Part { get; set; }
 
-    public int? EquipmentId { get; set; } // Felszerelés azonosító
+    public int? EquipmentId { get; set; } 
     public Equipment? Equipment { get; set; }
 
     [Required]
-    public string ItemType { get; set; } = "Part"; // "Part" vagy "Equipment"
+    public string ItemType { get; set; } = "Part";
 
     [Required]
     public int Quantity { get; set; } = 1;

@@ -8,6 +8,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using Xunit;
 
+//JELENLEG NEM MŰKÖDŐ KÓDRÉSZ!
+
 namespace AutoPartsShop.Tests
 {
     public class OrderControllerTests

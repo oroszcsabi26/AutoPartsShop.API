@@ -11,6 +11,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
 
+//JELENLEG NEM MŰKÖDŐ KÓDRÉSZ
+
 namespace AutoPartsShop.Tests
 {
     public class UserControllerTests

@@ -12,75 +12,72 @@ namespace AutoPartsShop.API.Controllers
     [ApiController]
     public class PartsCategoryController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly AppDbContext m_context;
 
         public PartsCategoryController(AppDbContext context)
         {
-            _context = context;
+            m_context = context;
         }
 
-        // Összes alkatrész kategória lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PartsCategory>>> GetPartsCategories()
         {
-            return await _context.PartsCategories.ToListAsync();
+            return await m_context.PartsCategories.ToListAsync();
         }
 
-        // Új alkatrész kategória hozzáadása
         [HttpPost]
-        public async Task<ActionResult<PartsCategory>> AddPartsCategory([FromBody] PartsCategory newCategory)
+        public async Task<ActionResult<PartsCategory>> AddPartsCategory([FromBody] PartsCategory p_newCategory)
         {
-            if (newCategory == null || string.IsNullOrWhiteSpace(newCategory.Name))
+            if (p_newCategory == null || string.IsNullOrWhiteSpace(p_newCategory.Name))
             {
                 return BadRequest("Az alkatrész kategória neve nem lehet üres!");
             }
 
-            // Ellenőrizzük, hogy létezik-e már ugyanilyen nevű kategória
-            var exists = await _context.PartsCategories.AnyAsync(pc => pc.Name == newCategory.Name);
+            var exists = await m_context.PartsCategories.AnyAsync(pc => pc.Name == p_newCategory.Name);
             if (exists)
             {
-                return Conflict($"Már létezik ilyen nevű alkatrész kategória: {newCategory.Name}");
+                return Conflict($"Már létezik ilyen nevű alkatrész kategória: {p_newCategory.Name}");
             }
 
-            _context.PartsCategories.Add(newCategory);
-            await _context.SaveChangesAsync();
+            m_context.PartsCategories.Add(p_newCategory);
+            await m_context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetPartsCategories), new { id = newCategory.Id }, newCategory);
+            return CreatedAtAction(nameof(GetPartsCategories), new { id = p_newCategory.Id }, p_newCategory);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePartsCategory(int id, [FromBody] PartsCategory updatedCategory)
+        public async Task<IActionResult> UpdatePartsCategory(int p_id, [FromBody] PartsCategory p_updatedCategory)
         {
-            var existingCategory = await _context.PartsCategories.FindAsync(id);
+            var existingCategory = await m_context.PartsCategories.FindAsync(p_id);
             if (existingCategory == null)
             {
-                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {id}");
+                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {p_id}");
             }
 
-            if (string.IsNullOrWhiteSpace(updatedCategory.Name))
+            if (string.IsNullOrWhiteSpace(p_updatedCategory.Name))
             {
                 return BadRequest("Az alkatrész kategória neve nem lehet üres.");
             }
 
-            existingCategory.Name = updatedCategory.Name;
-            await _context.SaveChangesAsync();
+            existingCategory.Name = p_updatedCategory.Name;
+            await m_context.SaveChangesAsync();
 
-            return NoContent(); // 204 No Content
+            return NoContent(); 
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePartsCategory(int id)
+        public async Task<IActionResult> DeletePartsCategory(int p_id)
         {
-            var category = await _context.PartsCategories.FindAsync(id);
+            var category = await m_context.PartsCategories.FindAsync(p_id);
             if (category == null)
             {
-                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {id}");
+                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {p_id}");
             }
 
-            _context.PartsCategories.Remove(category);
-            await _context.SaveChangesAsync();
+            m_context.PartsCategories.Remove(category);
+            await m_context.SaveChangesAsync();
 
-            return NoContent(); // 204 No Content
+            return NoContent(); 
         }
     }
 }

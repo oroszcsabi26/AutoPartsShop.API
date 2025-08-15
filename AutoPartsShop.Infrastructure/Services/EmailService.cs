@@ -8,35 +8,35 @@ namespace AutoPartsShop.Infrastructure.Services
 {
     public class EmailService : IEmailService
     {
-        private readonly IConfiguration _configuration;
+        private readonly IConfiguration m_configuration;
 
         public EmailService(IConfiguration configuration)
         {
-            _configuration = configuration;
+            m_configuration = configuration;
         }
 
-        public async Task SendEmailAsync(string toEmail, string subject, string body)
+        public async Task SendEmailAsync(string p_toEmail, string p_subject, string p_body)
         {
             var smtpClient = new SmtpClient
             {
-                Host = _configuration["Email:SmtpHost"],
-                Port = int.Parse(_configuration["Email:SmtpPort"]),
+                Host = m_configuration["Email:SmtpHost"],
+                Port = int.Parse(m_configuration["Email:SmtpPort"]),
                 EnableSsl = true,
                 Credentials = new NetworkCredential(
-                    _configuration["Email:SmtpUser"],
-                    _configuration["Email:SmtpPass"]
+                    m_configuration["Email:SmtpUser"],
+                    m_configuration["Email:SmtpPass"]
                 )
             };
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(_configuration["Email:From"]),
-                Subject = subject,
-                Body = body,
+                From = new MailAddress(m_configuration["Email:From"]),
+                Subject = p_subject,
+                Body = p_body,
                 IsBodyHtml = false
             };
 
-            mailMessage.To.Add(toEmail);
+            mailMessage.To.Add(p_toEmail);
             await smtpClient.SendMailAsync(mailMessage);
         }
     }

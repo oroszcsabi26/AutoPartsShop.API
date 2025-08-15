@@ -9,30 +9,30 @@ namespace AutoPartsShop.Core.Models
     public class Order
     {
         [Key]
-        public int Id { get; set; } // Egyedi rendelés azonosító
+        public int Id { get; set; } 
 
         [Required]
-        public int UserId { get; set; } // Felhasználó azonosítója
+        public int UserId { get; set; } 
 
         [ForeignKey("UserId")]
         public User? User { get; set; }
 
         [Required]
-        public DateTime OrderDate { get; set; } = DateTime.UtcNow; // Rendelés dátuma
+        public DateTime OrderDate { get; set; } = DateTime.UtcNow; 
 
         [Required]
-        public OrderStatus Status { get; set; } = OrderStatus.Feldolgozás; // Enum alapú állapot
+        public OrderStatus Status { get; set; } = OrderStatus.Feldolgozás; 
 
         [Required]
-        public string ShippingAddress { get; set; } = string.Empty; // Szállítási cím
+        public string ShippingAddress { get; set; } = string.Empty; 
 
         [Required]
-        public string BillingAddress { get; set; } = string.Empty; // Számlázási cím
+        public string BillingAddress { get; set; } = string.Empty; 
 
-        public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>(); // Rendelés tételei
+        public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>(); 
 
         [MaxLength(200)]
-        public string? Comment { get; set; } // Opcionális megjegyzés
+        public string? Comment { get; set; } 
 
         [Required]
         public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Készpénz;

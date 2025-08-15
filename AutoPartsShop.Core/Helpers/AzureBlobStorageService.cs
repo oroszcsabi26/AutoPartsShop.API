@@ -8,22 +8,22 @@ namespace AutoPartShop.Core.Helpers
 {
     public class AzureBlobStorageService
     {
-        private readonly BlobContainerClient _containerClient;
+        private readonly BlobContainerClient m_containerClient;
 
         public AzureBlobStorageService(IConfiguration configuration)
         {
             var connectionString = configuration["AzureBlobStorage:ConnectionString"];
             var containerName = configuration["AzureBlobStorage:ContainerName"];
 
-            _containerClient = new BlobContainerClient(connectionString, containerName);
-            _containerClient.CreateIfNotExists();
+            m_containerClient = new BlobContainerClient(connectionString, containerName);
+            m_containerClient.CreateIfNotExists();
         }
 
         public async Task<string> UploadFileAsync(Stream fileStream, string fileName)
         {
-            var blobClient = _containerClient.GetBlobClient(fileName);
+            var blobClient = m_containerClient.GetBlobClient(fileName);
             await blobClient.UploadAsync(fileStream, overwrite: true);
-            return blobClient.Uri.ToString(); // Ezt tároljuk az ImageUrl-ben
+            return blobClient.Uri.ToString();
         }
     }
 }

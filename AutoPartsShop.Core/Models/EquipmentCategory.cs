@@ -5,12 +5,11 @@ namespace AutoPartsShop.Core.Models
     public class EquipmentCategory
     {
         [Key]
-        public int Id { get; set; } // Egyedi azonosító
+        public int Id { get; set; }
 
         [Required]
-        public string Name { get; set; } = string.Empty; // Kategória neve
+        public string Name { get; set; } = string.Empty; 
 
-        // Kapcsolat a felszerelési cikkekkel (1:N kapcsolat)
         public List<Equipment> Equipments { get; set; } = new List<Equipment>();
     }
 }

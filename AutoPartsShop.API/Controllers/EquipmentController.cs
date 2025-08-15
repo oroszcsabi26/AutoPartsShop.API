@@ -11,20 +11,19 @@ namespace AutoPartsShop.API.Controllers
     [ApiController]
     public class EquipmentController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly AzureBlobStorageService _blobStorageService;
+        private readonly AppDbContext m_context;
+        private readonly AzureBlobStorageService m_blobStorageService;
 
         public EquipmentController(AppDbContext context, AzureBlobStorageService blobStorageService)
         {
-            _context = context;
-            _blobStorageService = blobStorageService;
+            m_context = context;
+            m_blobStorageService = blobStorageService;
         }
 
-        // Összes felszerelési cikk lekérése DTO-val
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EquipmentDisplay>>> GetEquipments()
         {
-            var equipments = await _context.Equipments
+            var equipments = await m_context.Equipments
                 .Include(e => e.EquipmentCategory)
                 .ToListAsync();
 
@@ -45,11 +44,10 @@ namespace AutoPartsShop.API.Controllers
             }).ToList();
         }
 
-        // Egy adott kategória szerinti felszerelések DTO-val
         [HttpGet("category/{categoryId}")]
         public async Task<ActionResult<IEnumerable<EquipmentDisplay>>> GetEquipmentsByCategory(int categoryId)
         {
-            var equipments = await _context.Equipments
+            var equipments = await m_context.Equipments
                 .Where(e => e.EquipmentCategoryId == categoryId)
                 .Include(e => e.EquipmentCategory)
                 .ToListAsync();
@@ -77,70 +75,66 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Equipment>> AddEquipment([FromForm] Equipment newEquipment, IFormFile? imageFile)
+        public async Task<ActionResult<Equipment>> AddEquipment([FromForm] Equipment p_newEquipment, IFormFile? p_imageFile)
         {
-            if (string.IsNullOrWhiteSpace(newEquipment.Name) || string.IsNullOrWhiteSpace(newEquipment.Manufacturer))
+            if (string.IsNullOrWhiteSpace(p_newEquipment.Name) || string.IsNullOrWhiteSpace(p_newEquipment.Manufacturer))
                 return BadRequest("A név és a gyártó megadása kötelező!");
 
-            if (newEquipment.Price <= 0)
+            if (p_newEquipment.Price <= 0)
                 return BadRequest("Az ár nem lehet nulla vagy negatív!");
 
-            if (!await _context.EquipmentCategories.AnyAsync(ec => ec.Id == newEquipment.EquipmentCategoryId))
-                return BadRequest($"Nincs ilyen kategória ID: {newEquipment.EquipmentCategoryId}");
+            if (!await m_context.EquipmentCategories.AnyAsync(ec => ec.Id == p_newEquipment.EquipmentCategoryId))
+                return BadRequest($"Nincs ilyen kategória ID: {p_newEquipment.EquipmentCategoryId}");
 
-            // Kép mentése, ha van
-            if (imageFile != null && imageFile.Length > 0)
+            if (p_imageFile != null && p_imageFile.Length > 0)
             {
-                using var stream = imageFile.OpenReadStream();
-                newEquipment.ImageUrl = await _blobStorageService.UploadFileAsync(stream, imageFile.FileName);
+                using var stream = p_imageFile.OpenReadStream();
+                p_newEquipment.ImageUrl = await m_blobStorageService.UploadFileAsync(stream, p_imageFile.FileName);
             }
 
-            _context.Equipments.Add(newEquipment);
-            await _context.SaveChangesAsync();
+            m_context.Equipments.Add(p_newEquipment);
+            await m_context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetEquipments), new { id = newEquipment.Id }, newEquipment);
+            return CreatedAtAction(nameof(GetEquipments), new { id = p_newEquipment.Id }, p_newEquipment);
         }
 
-        // Felszerelés módosítása (Angularban még úgy van beállítva hogy nem küldi a képet is, ezt módosítani kell!!)
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEquipment(int id, [FromBody] Equipment updatedEquipment, IFormFile? imageFile)
+        public async Task<IActionResult> UpdateEquipment(int p_id, [FromBody] Equipment p_updatedEquipment, IFormFile? p_imageFile)
         {
-            var existingEquipment = await _context.Equipments.FindAsync(id);
+            var existingEquipment = await m_context.Equipments.FindAsync(p_id);
             if (existingEquipment == null)
-                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {id}");
+                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {p_id}");
 
-            existingEquipment.Name = updatedEquipment.Name;
-            existingEquipment.Manufacturer = updatedEquipment.Manufacturer;
-            existingEquipment.Size = updatedEquipment.Size;
-            existingEquipment.Price = updatedEquipment.Price;
-            existingEquipment.Description = updatedEquipment.Description;
-            existingEquipment.Quantity = updatedEquipment.Quantity;
-            existingEquipment.ImageUrl = updatedEquipment.ImageUrl;
-            existingEquipment.Material = updatedEquipment.Material;
-            existingEquipment.Side = updatedEquipment.Side;
-            existingEquipment.EquipmentCategoryId = updatedEquipment.EquipmentCategoryId;
+            existingEquipment.Name = p_updatedEquipment.Name;
+            existingEquipment.Manufacturer = p_updatedEquipment.Manufacturer;
+            existingEquipment.Size = p_updatedEquipment.Size;
+            existingEquipment.Price = p_updatedEquipment.Price;
+            existingEquipment.Description = p_updatedEquipment.Description;
+            existingEquipment.Quantity = p_updatedEquipment.Quantity;
+            existingEquipment.ImageUrl = p_updatedEquipment.ImageUrl;
+            existingEquipment.Material = p_updatedEquipment.Material;
+            existingEquipment.Side = p_updatedEquipment.Side;
+            existingEquipment.EquipmentCategoryId = p_updatedEquipment.EquipmentCategoryId;
 
-            // Új kép feltöltése, ha van
-            if (imageFile != null && imageFile.Length > 0)
+            if (p_imageFile != null && p_imageFile.Length > 0)
             {
-                using var stream = imageFile.OpenReadStream();
-                existingEquipment.ImageUrl = await _blobStorageService.UploadFileAsync(stream, imageFile.FileName);
+                using var stream = p_imageFile.OpenReadStream();
+                existingEquipment.ImageUrl = await m_blobStorageService.UploadFileAsync(stream, p_imageFile.FileName);
             }
 
-            await _context.SaveChangesAsync();
+            await m_context.SaveChangesAsync();
             return NoContent();
         }
 
-        // Felszerelés törlése
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEquipment(int id)
+        public async Task<IActionResult> DeleteEquipment(int p_id)
         {
-            var equipment = await _context.Equipments.FindAsync(id);
+            var equipment = await m_context.Equipments.FindAsync(p_id);
             if (equipment == null)
-                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {id}");
+                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {p_id}");
 
-            _context.Equipments.Remove(equipment);
-            await _context.SaveChangesAsync();
+            m_context.Equipments.Remove(equipment);
+            await m_context.SaveChangesAsync();
             return NoContent();
         }
     }

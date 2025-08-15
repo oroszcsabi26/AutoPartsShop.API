@@ -8,10 +8,9 @@ namespace AutoPartsShop.Core.Models
 {
     public class CarBrand
     {
-        public int Id { get; set; }  // Egyedi azonosító (kulcs)
-        public string Name { get; set; } = string.Empty;  // Autómárka neve
+        public int Id { get; set; }  
+        public string Name { get; set; } = string.Empty;  
 
-        // Kapcsolat az autómodellekkel (egy márkához több modell tartozhat)
         public List<CarModel> CarModels { get; set; } = new List<CarModel>();
     }
 }

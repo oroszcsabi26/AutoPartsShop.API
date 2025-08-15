@@ -9,85 +9,82 @@ namespace AutoPartsShop.API.Controllers
     [ApiController]
     public class CarModelController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly AppDbContext m_context;
 
         public CarModelController(AppDbContext context)
         {
-            _context = context;
+            m_context = context;
         }
 
-        // Összes autómodell lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CarModel>>> GetCarModels()
         {
-            return await _context.CarModels.ToListAsync();
+            return await m_context.CarModels.ToListAsync();
         }
 
-        // Autómárkához tartozó modellek lekérése ID alapján
         [HttpGet("brand/{brandId}")]
-        public async Task<ActionResult<IEnumerable<CarModel>>> GetModelsByBrand(int brandId)
+        public async Task<ActionResult<IEnumerable<CarModel>>> GetModelsByBrand(int p_brandId)
         {
-            var models = await _context.CarModels
-                                       .Where(cm => cm.CarBrandId == brandId)
+            var models = await m_context.CarModels
+                                       .Where(cm => cm.CarBrandId == p_brandId)
                                        .ToListAsync();
 
             if (models == null || models.Count == 0)
             {
-                return NotFound($"Nincs autómodell ezzel a márka ID-vel: {brandId}");
+                return NotFound($"Nincs autómodell ezzel a márka ID-vel: {p_brandId}");
             }
 
             return models;
         }
 
         [HttpPost("{brandId}")]
-        public async Task<ActionResult<CarModel>> AddCarModel(int brandId, [FromBody] CarModel model)
+        public async Task<ActionResult<CarModel>> AddCarModel(int p_brandId, [FromBody] CarModel p_model)
         {
-            var brandExists = await _context.CarBrands.AnyAsync(cb => cb.Id == brandId);
+            var brandExists = await m_context.CarBrands.AnyAsync(cb => cb.Id == p_brandId);
             if (!brandExists)
             {
-                return NotFound($"Nincs autómárka ezzel az ID-val: {brandId}");
+                return NotFound($"Nincs autómárka ezzel az ID-val: {p_brandId}");
             }
 
-            model.CarBrandId = brandId; // Csak az ID-t állítjuk be, a CarBrand objektumot NEM
-            //model.CarBrand = null;
+            p_model.CarBrandId = p_brandId; 
 
-            _context.CarModels.Add(model);
-            await _context.SaveChangesAsync();
+            m_context.CarModels.Add(p_model);
+            await m_context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCarModels), new { id = model.Id }, model);
+            return CreatedAtAction(nameof(GetCarModels), new { id = p_model.Id }, p_model);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCarModel(int id, [FromBody] CarModel updatedModel)
+        public async Task<IActionResult> UpdateCarModel(int p_id, [FromBody] CarModel p_updatedModel)
         {
-            if (updatedModel == null || string.IsNullOrWhiteSpace(updatedModel.Name))
+            if (p_updatedModel == null || string.IsNullOrWhiteSpace(p_updatedModel.Name))
             {
                 return BadRequest("A modell neve nem lehet üres!");
             }
 
-            var existingModel = await _context.CarModels.FindAsync(id);
+            var existingModel = await m_context.CarModels.FindAsync(p_id);
             if (existingModel == null)
             {
-                return NotFound($"Nincs autómodell ezzel az ID-vel: {id}");
+                return NotFound($"Nincs autómodell ezzel az ID-vel: {p_id}");
             }
 
-            existingModel.Name = updatedModel.Name;
-            existingModel.Year = updatedModel.Year;
-            await _context.SaveChangesAsync();
+            existingModel.Name = p_updatedModel.Name;
+            existingModel.Year = p_updatedModel.Year;
+            await m_context.SaveChangesAsync();
 
             return Ok(existingModel);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCarModel(int id)
+        public async Task<IActionResult> DeleteCarModel(int p_id)
         {
-            var model = await _context.CarModels
-                .Include(cm => cm.Parts) // Betöltjük a kapcsolódó alkatrészeket
-                .FirstOrDefaultAsync(cm => cm.Id == id);
+            var model = await m_context.CarModels
+                .Include(cm => cm.Parts) 
+                .FirstOrDefaultAsync(cm => cm.Id == p_id);
 
             if (model == null)
             {
-                return NotFound($"Nincs autómodell ezzel az ID-vel: {id}");
+                return NotFound($"Nincs autómodell ezzel az ID-vel: {p_id}");
             }
 
             if (model.Parts.Any())
@@ -95,46 +92,52 @@ namespace AutoPartsShop.API.Controllers
                 return BadRequest("Nem törölhető, mert még léteznek hozzá tartozó alkatrészek!");
             }
 
-            _context.CarModels.Remove(model);
-            await _context.SaveChangesAsync();
+            var hasVariants = await m_context.EngineVariants.AnyAsync(ev => ev.CarModelId == p_id);
+            if (hasVariants)
+            {
+                return BadRequest("Nem törölhető, mert tartoznak hozzá motorváltozatok (EngineVariants).");
+            }
+
+            m_context.CarModels.Remove(model);
+            await m_context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        // Motorváltozatok lekérdezése adott autómárka ID, modellnév és évjárat alapján
         [HttpGet("brandId/{brandId}/modelName/{modelName}/year/{year}/engine-options")]
-        public async Task<ActionResult<IEnumerable<string>>> GetEngineOptions(int brandId, string modelName, int year)
+        public async Task<ActionResult<IEnumerable<string>>> GetEngineOptions(int p_brandId, string p_modelName, int p_year)
         {
-            var engines = await _context.CarModels
-                .Where(cm =>
-                    cm.CarBrandId == brandId &&
-                    cm.Name.ToLower() == modelName.ToLower() &&
-                    cm.Year == year)
-                .Select(cm => cm.FuelType + "/" + cm.EngineSize)
+            var engines = await m_context.EngineVariants
+                .Where(ev =>
+                    ev.CarModel.CarBrandId == p_brandId &&
+                    ev.CarModel.Name.ToLower() == p_modelName.ToLower() &&
+                    ev.YearFrom <= p_year && p_year <= ev.YearTo)
+                .Select(ev => ev.FuelType + "/" + ev.EngineSize)
                 .Distinct()
                 .ToListAsync();
 
             if (!engines.Any())
-            {
                 return NotFound("Nem találhatók motorváltozatok a megadott paraméterekre.");
-            }
 
             return Ok(engines);
         }
 
         [HttpGet("compatible-years/model/{modelId}")]
-        public async Task<ActionResult<IEnumerable<int>>> GetCompatibleYearsByModel(int modelId)
+        public async Task<ActionResult<IEnumerable<int>>> GetCompatibleYearsByModel(int p_modelId)
         {
-            var years = await _context.CarModels
-                .Where(cm => cm.Id == modelId)
-                .Select(cm => cm.Year)
-                .Distinct()
+            var spans = await m_context.EngineVariants
+                .Where(ev => ev.CarModelId == p_modelId)
+                .Select(ev => new { ev.YearFrom, ev.YearTo })
                 .ToListAsync();
 
-            if (!years.Any())
-            {
+            if (!spans.Any())
                 return NotFound("Nem találhatók évjáratok a megadott modellhez.");
-            }
+
+            var years = spans
+                .SelectMany(s => Enumerable.Range(s.YearFrom, s.YearTo - s.YearFrom + 1))
+                .Distinct()
+                .OrderBy(y => y)
+                .ToList();
 
             return Ok(years);
         }

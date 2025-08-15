@@ -21,7 +21,7 @@ namespace AutoPartsShop.Core.DTOs
 
         [Required]
         [MinLength(8)]
-        public string Password { get; set; } = string.Empty;  // Nem PasswordHash, mert a backend fogja hash-elni
+        public string Password { get; set; } = string.Empty;  
 
         public string Address { get; set; } = string.Empty;
         public string ShippingAddress { get; set; } = string.Empty;

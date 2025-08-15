@@ -5,71 +5,71 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartsShop.API.Controllers
 {
-    [Route("api/cars")]     //Az API végpont URL-je /api/carbrand lesz.
+    [Route("api/cars")]   
     [ApiController]
     public class CarBrandController : ControllerBase
     {
-        private readonly AppDbContext _context;     //Az AppDbContext segítségével érjük el az adatbázist.
+        private readonly AppDbContext m_context;     
 
-        public CarBrandController(AppDbContext context)    // Dependency Injection segítségével kapjuk meg az adatbázis kapcsolatot.
+        public CarBrandController(AppDbContext context)    
         {
-            _context = context;
+            m_context = context;
         }
 
         // Összes autómárka lekérése
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CarBrand>>> GetCarBrands()
         {
-            return await _context.CarBrands
+            return await m_context.CarBrands
                 .Include(cb => cb.CarModels)
                 .ToListAsync();
         }
 
         // Új autómárka rögzítése
         [HttpPost]
-        public async Task<ActionResult<CarBrand>> AddCarBrand(CarBrand newBrand)
+        public async Task<ActionResult<CarBrand>> AddCarBrand(CarBrand p_newBrand)
         {
-            if (newBrand == null || string.IsNullOrWhiteSpace(newBrand.Name))
+            if (p_newBrand == null || string.IsNullOrWhiteSpace(p_newBrand.Name))
             {
                 return BadRequest("Az autómárka neve nem lehet üres!");
             }
 
-            _context.CarBrands.Add(newBrand);
-            await _context.SaveChangesAsync();
+            m_context.CarBrands.Add(p_newBrand);
+            await m_context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCarBrands), new { id = newBrand.Id }, newBrand);
+            return CreatedAtAction(nameof(GetCarBrands), new { id = p_newBrand.Id }, p_newBrand);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCarBrand(int id, [FromBody] CarBrand updatedBrand)
+        public async Task<IActionResult> UpdateCarBrand(int p_id, [FromBody] CarBrand p_updatedBrand)
         {
-            if (updatedBrand == null || string.IsNullOrWhiteSpace(updatedBrand.Name))
+            if (p_updatedBrand == null || string.IsNullOrWhiteSpace(p_updatedBrand.Name))
             {
                 return BadRequest("Az autómárka neve nem lehet üres!");
             }
 
-            var existingBrand = await _context.CarBrands.FindAsync(id);
+            var existingBrand = await m_context.CarBrands.FindAsync(p_id);
             if (existingBrand == null)
             {
-                return NotFound($"Nincs autómárka ezzel az ID-vel: {id}");
+                return NotFound($"Nincs autómárka ezzel az ID-vel: {p_id}");
             }
 
-            existingBrand.Name = updatedBrand.Name;
-            await _context.SaveChangesAsync();
+            existingBrand.Name = p_updatedBrand.Name;
+            await m_context.SaveChangesAsync();
 
             return Ok(existingBrand);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCarBrand(int id)
+        public async Task<IActionResult> DeleteCarBrand(int p_id)
         {
-            var brand = await _context.CarBrands
-                .Include(cb => cb.CarModels) // Betöltjük a kapcsolódó modelleket
-                .FirstOrDefaultAsync(cb => cb.Id == id);
+            var brand = await m_context.CarBrands
+                .Include(cb => cb.CarModels)
+                .FirstOrDefaultAsync(cb => cb.Id == p_id);
 
             if (brand == null)
             {
-                return NotFound($"Nincs autómárka ezzel az ID-vel: {id}");
+                return NotFound($"Nincs autómárka ezzel az ID-vel: {p_id}");
             }
 
             if (brand.CarModels.Any())
@@ -77,8 +77,8 @@ namespace AutoPartsShop.API.Controllers
                 return BadRequest("Nem törölhető, mert még léteznek hozzá tartozó autómodellek!");
             }
 
-            _context.CarBrands.Remove(brand);
-            await _context.SaveChangesAsync();
+            m_context.CarBrands.Remove(brand);
+            await m_context.SaveChangesAsync();
 
             return NoContent();
         }

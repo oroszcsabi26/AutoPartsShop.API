@@ -12,203 +12,285 @@ namespace AutoPartsShop.API.Controllers
     [ApiController]
     public class PartsController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly AzureBlobStorageService _blobStorageService;
+        private readonly AppDbContext m_context;
+        private readonly AzureBlobStorageService m_blobStorageService;
 
         public PartsController(AppDbContext context, AzureBlobStorageService blobStorageService)
         {
-            _context = context;
-            _blobStorageService = blobStorageService;
+            m_context = context;
+            m_blobStorageService = blobStorageService;
         }
 
-        // Összes alkatrész lekérése
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Part>>> GetParts()
+        public async Task<ActionResult<IEnumerable<object>>> GetParts()
         {
-            return await _context.Parts
+            var parts = await m_context.Parts
                 .Include(p => p.PartsCategory)
                 .Include(p => p.CarModel)
+                .Include(p => p.PartEngineVariants)
                 .ToListAsync();
+
+            var result = parts.Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.Price,
+                p.Manufacturer,
+                p.Side,
+                p.Shape,
+                p.Size,
+                p.Type,
+                p.Material,
+                p.Description,
+                p.Quantity,
+                p.ImageUrl,
+                p.CarModelId,
+                p.PartsCategoryId,
+                EngineVariantIds = p.PartEngineVariants.Select(pev => pev.EngineVariantId).ToList()
+            });
+
+            return Ok(result);
         }
 
-        // Egy adott autómodell alkatrészeinek lekérése
-        [HttpGet("carModel/{carModelId}/year/{year}")]
-        public async Task<ActionResult<IEnumerable<Part>>> GetPartsByCarModelAndYear(int carModelId, int year, [FromQuery] string? fuelType, [FromQuery] int? engineSize)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<object>> GetPartById(int p_id)
         {
-            var parts = await _context.Parts
-                .Where(p => p.CarModelId == carModelId)
-                .Include(p => p.PartsCategory)
-                .Include(p => p.CarModel)
-                .ThenInclude(cm => cm.CarBrand)
+            var part = await m_context.Parts
+                .Include(p => p.PartEngineVariants)
+                .FirstOrDefaultAsync(p => p.Id == p_id);
+
+            if (part == null)
+                return NotFound();
+
+            var engineVariantIds = part.PartEngineVariants
+                .Select(pev => pev.EngineVariantId)
+                .ToList();
+
+            return Ok(new
+            {
+                part.Id,
+                part.Name,
+                part.Price,
+                part.Manufacturer,
+                part.Side,
+                part.Shape,
+                part.Size,
+                part.Type,
+                part.Material,
+                part.Description,
+                part.Quantity,
+                part.ImageUrl,
+                part.CarModelId,
+                part.PartsCategoryId,
+                EngineVariantIds = engineVariantIds
+            });
+        }
+
+        [HttpGet("carModel/{carModelId}/year/{year}")]
+        public async Task<ActionResult<IEnumerable<Part>>> GetPartsByCarModelAndYear(int p_carModelId, int p_year, [FromQuery] string? p_fuelType, [FromQuery] int? p_engineSize)
+        {
+            var matchingVariants = await m_context.EngineVariants
+                .Where(ev => ev.CarModelId == p_carModelId &&
+                             ev.YearFrom <= p_year && p_year <= ev.YearTo &&
+                             (p_fuelType == null || ev.FuelType.ToLower() == p_fuelType.ToLower()) &&
+                             (!p_engineSize.HasValue || ev.EngineSize == p_engineSize.Value))
+                .Select(ev => ev.Id)
                 .ToListAsync();
 
-            // Szűrés évjárat alapján
-            parts = parts.Where(p =>
-                p.CompatibleManufacturingYears.Contains(year)
-            ).ToList();
+            if (!matchingVariants.Any())
+                return NotFound("Nem található motorváltozat a megadott feltételekkel.");
 
-            // Szűrés üzemanyag és motor méret szerint (ha meg vannak adva)
-            if (!string.IsNullOrEmpty(fuelType) && engineSize.HasValue)
-            {
-                parts = parts.Where(p =>
-                    p.CarModel != null &&
-                    p.CarModel.FuelType.ToLower() == fuelType.ToLower() &&
-                    p.CarModel.EngineSize == engineSize.Value
-                ).ToList();
-            }
-
-            if (!parts.Any())
-            {
-                return NotFound("Nincs az adott szűrési feltételeknek megfelelő alkatrész.");
-            }
+            var parts = await m_context.PartEngineVariants
+                .Where(pev => matchingVariants.Contains(pev.EngineVariantId))
+                .Include(pev => pev.Part)
+                    .ThenInclude(p => p.CarModel)
+                        .ThenInclude(cm => cm.CarBrand)
+                .Include(pev => pev.Part.PartsCategory)
+                .Select(pev => pev.Part)
+                .Distinct()
+                .ToListAsync();
 
             return Ok(parts);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Part>> AddPart([FromForm] Part newPart, IFormFile? imageFile)
+        public async Task<ActionResult<Part>> AddPart([FromForm] Part p_newPart, [FromForm] List<int>? p_engineVariantIds, IFormFile? p_imageFile)
         {
-            // Ellenőrzés: Autómodell és alkatrészkategória létezik-e
-            var carModelExists = await _context.CarModels.AnyAsync(cm => cm.Id == newPart.CarModelId);
-            var categoryExists = await _context.PartsCategories.AnyAsync(pc => pc.Id == newPart.PartsCategoryId);
+            var carModelExists = await m_context.CarModels.AnyAsync(cm => cm.Id == p_newPart.CarModelId);
+            var categoryExists = await m_context.PartsCategories.AnyAsync(pc => pc.Id == p_newPart.PartsCategoryId);
 
             if (!carModelExists)
             {
-                return BadRequest($"Nincs ilyen autómodell ID: {newPart.CarModelId}");
+                return BadRequest($"Nincs ilyen autómodell ID: {p_newPart.CarModelId}");
             }
 
             if (!categoryExists)
             {
-                return BadRequest($"Nincs ilyen alkatrészkategória ID: {newPart.PartsCategoryId}");
+                return BadRequest($"Nincs ilyen alkatrészkategória ID: {p_newPart.PartsCategoryId}");
             }
 
-            if (string.IsNullOrWhiteSpace(newPart.Manufacturer))
+            if (string.IsNullOrWhiteSpace(p_newPart.Manufacturer))
             {
                 return BadRequest("A gyártó megadása kötelező!");
             }
 
-            // Alapértelmezett értékek beállítása (null vagy üres mezők esetén)
-            newPart.Quantity = newPart.Quantity == 0 ? 1 : newPart.Quantity;
-            newPart.Description ??= "";
-            newPart.Type ??= "";
-            newPart.Shape ??= "";
-            newPart.Size ??= "";
-            newPart.Side ??= "";
-            newPart.Material ??= "";
-
-            // Képfájl mentése, ha érkezett
-            if (imageFile != null && imageFile.Length > 0)
+            if (p_engineVariantIds != null && p_engineVariantIds.Any())
             {
-                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
-                string imageUrl = await _blobStorageService.UploadFileAsync(imageFile.OpenReadStream(), fileName);
-                newPart.ImageUrl = imageUrl;
+                p_engineVariantIds = p_engineVariantIds.Distinct().ToList();
+
+                var validEvIds = await m_context.EngineVariants
+                    .Where(ev => p_engineVariantIds.Contains(ev.Id))
+                    .Select(ev => new { ev.Id, ev.CarModelId })
+                    .ToListAsync();
+
+                if (validEvIds.Count != p_engineVariantIds.Count)
+                    return BadRequest("Egy vagy több megadott EngineVariant nem létezik.");
+
+                if (validEvIds.Any(x => x.CarModelId != p_newPart.CarModelId))
+                    return BadRequest("Minden EngineVariantnak ugyanahhoz a CarModelhez kell tartoznia, mint a Part.CarModelId.");
             }
 
-            // 4Alkatrész mentése adatbázisba
-            _context.Parts.Add(newPart);
-            await _context.SaveChangesAsync();
+            p_newPart.Quantity = p_newPart.Quantity == 0 ? 1 : p_newPart.Quantity;
+            p_newPart.Description ??= "";
+            p_newPart.Type ??= "";
+            p_newPart.Shape ??= "";
+            p_newPart.Size ??= "";
+            p_newPart.Side ??= "";
+            p_newPart.Material ??= "";
 
-            return CreatedAtAction(nameof(GetParts), new { id = newPart.Id }, newPart);
+            if (p_imageFile != null && p_imageFile.Length > 0)
+            {
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(p_imageFile.FileName);
+                string imageUrl = await m_blobStorageService.UploadFileAsync(p_imageFile.OpenReadStream(), fileName);
+                p_newPart.ImageUrl = imageUrl;
+            }
+
+            m_context.Parts.Add(p_newPart);
+            await m_context.SaveChangesAsync();
+
+            if (p_engineVariantIds != null)
+            {
+                foreach (var evId in p_engineVariantIds)
+                {
+                    m_context.PartEngineVariants.Add(new PartEngineVariant
+                    {
+                        PartId = p_newPart.Id,
+                        EngineVariantId = evId
+                    });
+                }
+                await m_context.SaveChangesAsync();
+            }
+
+            return CreatedAtAction(nameof(GetPartById), new { id = p_newPart.Id }, p_newPart);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePart(int id, [FromForm] Part updatedPart, IFormFile? imageFile)
+        public async Task<IActionResult> UpdatePart(int p_id, [FromForm] Part p_updatedPart, [FromForm] List<int>? p_engineVariantIds, IFormFile? p_imageFile)
         {
-            var part = await _context.Parts.FindAsync(id);
+            var part = await m_context.Parts
+                .Include(p => p.PartEngineVariants)
+                .FirstOrDefaultAsync(p => p.Id == p_id);
+
             if (part == null)
             {
-                return NotFound($"Nincs alkatrész ezzel az ID-vel: {id}");
+                return NotFound($"Nincs alkatrész ezzel az ID-vel: {p_id}");
             }
 
-            if (string.IsNullOrWhiteSpace(updatedPart.Manufacturer))
+            if (string.IsNullOrWhiteSpace(p_updatedPart.Manufacturer))
             {
                 return BadRequest("A gyártó megadása kötelező!");
             }
 
-            // Frissítés
-            part.Name = updatedPart.Name;
-            part.Price = updatedPart.Price;
-            part.PartsCategoryId = updatedPart.PartsCategoryId;
-            part.CarModelId = updatedPart.CarModelId;
-            part.Manufacturer = updatedPart.Manufacturer;
-            part.Quantity = updatedPart.Quantity;
-            part.Side = updatedPart.Side;
-            part.Shape = updatedPart.Shape;
-            part.Size = updatedPart.Size;
-            part.Type = updatedPart.Type;
-            part.Material = updatedPart.Material;
-            part.Description = updatedPart.Description;
+            part.Name = p_updatedPart.Name;
+            part.Price = p_updatedPart.Price;
+            part.PartsCategoryId = p_updatedPart.PartsCategoryId;
+            part.CarModelId = p_updatedPart.CarModelId;
+            part.Manufacturer = p_updatedPart.Manufacturer;
+            part.Quantity = p_updatedPart.Quantity;
+            part.Side = p_updatedPart.Side;
+            part.Shape = p_updatedPart.Shape;
+            part.Size = p_updatedPart.Size;
+            part.Type = p_updatedPart.Type;
+            part.Material = p_updatedPart.Material;
+            part.Description = p_updatedPart.Description;
 
-            if (imageFile != null && imageFile.Length > 0)
+            if (p_imageFile != null && p_imageFile.Length > 0)
             {
-                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
-                string imageUrl = await _blobStorageService.UploadFileAsync(imageFile.OpenReadStream(), fileName);
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(p_imageFile.FileName);
+                string imageUrl = await m_blobStorageService.UploadFileAsync(p_imageFile.OpenReadStream(), fileName);
                 part.ImageUrl = imageUrl;
             }
 
-            await _context.SaveChangesAsync();
-            return NoContent(); // 204 No Content, mert nincs visszaküldendő adat
+            if (p_engineVariantIds != null && p_engineVariantIds.Any())
+            {
+                p_engineVariantIds = p_engineVariantIds.Distinct().ToList();
+
+                var validEvIds = await m_context.EngineVariants
+                    .Where(ev => p_engineVariantIds.Contains(ev.Id))
+                    .Select(ev => new { ev.Id, ev.CarModelId })
+                    .ToListAsync();
+
+                if (validEvIds.Count != p_engineVariantIds.Count)
+                    return BadRequest("Egy vagy több megadott EngineVariant nem létezik.");
+
+                if (validEvIds.Any(x => x.CarModelId != p_updatedPart.CarModelId))
+                    return BadRequest("Minden EngineVariantnak ugyanahhoz a CarModelhez kell tartoznia, mint a Part.CarModelId.");
+
+                m_context.PartEngineVariants.RemoveRange(part.PartEngineVariants);
+
+                foreach (var evId in p_engineVariantIds)
+                {
+                    m_context.PartEngineVariants.Add(new PartEngineVariant
+                    {
+                        PartId = part.Id,
+                        EngineVariantId = evId
+                    });
+                }
+            }
+
+            await m_context.SaveChangesAsync();
+            return NoContent(); 
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePart(int id)
+        public async Task<IActionResult> DeletePart(int p_id)
         {
-            var part = await _context.Parts.FindAsync(id);
+            var part = await m_context.Parts
+                .Include(p => p.PartEngineVariants)
+                .FirstOrDefaultAsync(p => p.Id == p_id);
             if (part == null)
             {
-                return NotFound($"Nincs ilyen alkatrész az adatbázisban: {id}");
+                return NotFound($"Nincs ilyen alkatrész az adatbázisban: {p_id}");
             }
 
-            _context.Parts.Remove(part);
-            await _context.SaveChangesAsync();
-            return NoContent(); // 204 No Content, mert nincs visszaküldendő adat
+            m_context.PartEngineVariants.RemoveRange(part.PartEngineVariants);
+            m_context.Parts.Remove(part);
+            await m_context.SaveChangesAsync();
+            return NoContent(); 
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<PartDisplay>>> SearchParts([FromQuery] string? name, [FromQuery] int? carModelId, [FromQuery] int? partsCategoryId, [FromQuery] int? year, [FromQuery] string? fuelType, [FromQuery] int? engineSize)
+        public async Task<ActionResult<IEnumerable<PartDisplay>>> SearchParts([FromQuery] string? p_name, [FromQuery] int? p_carModelId, [FromQuery] int? p_partsCategoryId, [FromQuery] int? p_engineVariantId)
         {
-            IQueryable<Part> query = _context.Parts
+            IQueryable<Part> query = m_context.Parts
                 .Include(p => p.CarModel)
                 .ThenInclude(cm => cm.CarBrand)
-                .Include(p => p.PartsCategory);
+                .Include(p => p.PartsCategory)
+                .Include(p => p.PartEngineVariants);
 
-            if (!carModelId.HasValue && !partsCategoryId.HasValue && !year.HasValue)
-            {
-                return BadRequest("Legalább egy szűrési feltétel (autómodell vagy alkatrész kategória) szükséges!");
-            }
+            if (!string.IsNullOrWhiteSpace(p_name))
+                query = query.Where(p => p.Name.Contains(p_name));
 
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                query = query.Where(p => p.Name.Contains(name));
-            }
+            if (p_carModelId.HasValue)
+                query = query.Where(p => p.CarModelId == p_carModelId.Value);
 
-            if (carModelId.HasValue)
-            {
-                query = query.Where(p => p.CarModelId == carModelId.Value);
-            }
+            if (p_partsCategoryId.HasValue)
+                query = query.Where(p => p.PartsCategoryId == p_partsCategoryId.Value);
 
-            if (partsCategoryId.HasValue)
-            {
-                query = query.Where(p => p.PartsCategoryId == partsCategoryId.Value);
-            }
+            if (p_engineVariantId.HasValue)
+                query = query.Where(p => p.PartEngineVariants.Any(pev => pev.EngineVariantId == p_engineVariantId.Value));
 
             var parts = await query.ToListAsync();
-
-            if (year.HasValue)
-            {
-                parts = parts.Where(p =>
-                    p.CompatibleManufacturingYears.Contains(year.Value)
-                ).ToList();
-            }
-
-            if (!string.IsNullOrEmpty(fuelType) && engineSize.HasValue)
-            {
-                parts = parts.Where(p =>
-                    p.CarModel != null &&
-                    p.CarModel.FuelType.ToLower() == fuelType.ToLower() &&
-                    p.CarModel.EngineSize == engineSize.Value
-                ).ToList();
-            }
 
             var result = parts.Select(p => new PartDisplay
             {

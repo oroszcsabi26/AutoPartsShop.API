@@ -11,52 +11,43 @@ namespace AutoPartsShop.Core.Models
     public class Part
     {
         [Key]
-        public int Id { get; set; } // Egyedi azonosító
+        public int Id { get; set; } 
 
         [Required]
-        public string Name { get; set; } = string.Empty; // Alkatrész neve
+        public string Name { get; set; } = string.Empty;
 
         [Required]
-        public decimal Price { get; set; } // Alkatrész ára
+        public decimal Price { get; set; } 
 
         [Required]
-        public int CarModelId { get; set; } // Kapcsolat az autómodellel
+        public int CarModelId { get; set; }
 
         [ForeignKey("CarModelId")]
-        public CarModel? CarModel { get; set; } // Egy alkatrész egy autómodellhez tartozik
+        public CarModel? CarModel { get; set; } 
 
         [Required]
-        public int PartsCategoryId { get; set; } // Kapcsolat az alkatrész kategóriával
+        public int PartsCategoryId { get; set; } 
 
         [ForeignKey("PartsCategoryId")]
-        public PartsCategory? PartsCategory { get; set; } // Egy alkatrész egy kategóriához tartozik
+        public PartsCategory? PartsCategory { get; set; } 
 
         [Required]
-        public string Manufacturer { get; set; } = "Ismeretlen"; // Gyártó neve (KÖTELEZŐ)
+        public string Manufacturer { get; set; } = "Ismeretlen"; 
 
-        public string? Side { get; set; } = string.Empty; // Alkatrész oldala
+        public string? Side { get; set; } = string.Empty; 
 
-        public string? Shape { get; set; } // Alkatrész alakja
-        public string? Size { get; set; } // Alkatrész mérete
+        public string? Shape { get; set; } 
+        public string? Size { get; set; } 
 
-        public string? Type { get; set; } // Alkatrész leírása
+        public string? Type { get; set; } 
 
-        public string? Material { get; set; } // Alkatrész anyaga
-        public string? Description { get; set; } // Alkatrész leírása
+        public string? Material { get; set; } 
+        public string? Description { get; set; } 
 
-        public int Quantity { get; set; } // Alkatrész mennyisége
+        public int Quantity { get; set; } 
 
-        public string? ImageUrl { get; set; } = string.Empty; // Alkatrész kép URL-je
+        public string? ImageUrl { get; set; } = string.Empty; 
 
-        [NotMapped]
-        public int[] CompatibleManufacturingYears { get; set; } = Array.Empty<int>();
-
-        public string CompatibleYearsRaw
-        {
-            get => string.Join(",", CompatibleManufacturingYears);
-            set => CompatibleManufacturingYears = string.IsNullOrWhiteSpace(value)
-                ? Array.Empty<int>()
-                : value.Split(',').Select(int.Parse).ToArray();
-        }
+        public List<PartEngineVariant> PartEngineVariants { get; set; } = new();
     }
 }

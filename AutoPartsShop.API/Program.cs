@@ -13,9 +13,9 @@ namespace AutoPartsShop.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static void Main(string[] p_args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            var builder = WebApplication.CreateBuilder(p_args);
 
             // CORS beállítások (Angular fejlesztõi szerver engedélyezése)
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
