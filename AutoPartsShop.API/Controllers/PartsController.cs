@@ -15,10 +15,10 @@ namespace AutoPartsShop.API.Controllers
         private readonly AppDbContext m_context;
         private readonly AzureBlobStorageService m_blobStorageService;
 
-        public PartsController(AppDbContext context, AzureBlobStorageService blobStorageService)
+        public PartsController(AppDbContext p_context, AzureBlobStorageService p_blobStorageService)
         {
-            m_context = context;
-            m_blobStorageService = blobStorageService;
+            m_context = p_context;
+            m_blobStorageService = p_blobStorageService;
         }
 
         [HttpGet]
@@ -53,11 +53,11 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<object>> GetPartById(int p_id)
+        public async Task<ActionResult<object>> GetPartById(int id)
         {
             var part = await m_context.Parts
                 .Include(p => p.PartEngineVariants)
-                .FirstOrDefaultAsync(p => p.Id == p_id);
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (part == null)
                 return NotFound();
@@ -87,11 +87,11 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("carModel/{carModelId}/year/{year}")]
-        public async Task<ActionResult<IEnumerable<Part>>> GetPartsByCarModelAndYear(int p_carModelId, int p_year, [FromQuery] string? p_fuelType, [FromQuery] int? p_engineSize)
+        public async Task<ActionResult<IEnumerable<Part>>> GetPartsByCarModelAndYear(int carModelId, int year, [FromQuery] string? p_fuelType, [FromQuery] int? p_engineSize)
         {
             var matchingVariants = await m_context.EngineVariants
-                .Where(ev => ev.CarModelId == p_carModelId &&
-                             ev.YearFrom <= p_year && p_year <= ev.YearTo &&
+                .Where(ev => ev.CarModelId == carModelId &&
+                             ev.YearFrom <= year && year <= ev.YearTo &&
                              (p_fuelType == null || ev.FuelType.ToLower() == p_fuelType.ToLower()) &&
                              (!p_engineSize.HasValue || ev.EngineSize == p_engineSize.Value))
                 .Select(ev => ev.Id)
@@ -185,15 +185,15 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePart(int p_id, [FromForm] Part p_updatedPart, [FromForm] List<int>? p_engineVariantIds, IFormFile? p_imageFile)
+        public async Task<IActionResult> UpdatePart(int id, [FromForm] Part p_updatedPart, [FromForm] List<int>? p_engineVariantIds, IFormFile? p_imageFile)
         {
             var part = await m_context.Parts
                 .Include(p => p.PartEngineVariants)
-                .FirstOrDefaultAsync(p => p.Id == p_id);
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (part == null)
             {
-                return NotFound($"Nincs alkatrész ezzel az ID-vel: {p_id}");
+                return NotFound($"Nincs alkatrész ezzel az ID-vel: {id}");
             }
 
             if (string.IsNullOrWhiteSpace(p_updatedPart.Manufacturer))
@@ -253,14 +253,14 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePart(int p_id)
+        public async Task<IActionResult> DeletePart(int id)
         {
             var part = await m_context.Parts
                 .Include(p => p.PartEngineVariants)
-                .FirstOrDefaultAsync(p => p.Id == p_id);
+                .FirstOrDefaultAsync(p => p.Id == id);
             if (part == null)
             {
-                return NotFound($"Nincs ilyen alkatrész az adatbázisban: {p_id}");
+                return NotFound($"Nincs ilyen alkatrész az adatbázisban: {id}");
             }
 
             m_context.PartEngineVariants.RemoveRange(part.PartEngineVariants);

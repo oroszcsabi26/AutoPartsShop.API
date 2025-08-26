@@ -21,10 +21,10 @@ namespace AutoPartsShop.API.Controllers
         private readonly AppDbContext m_context;
         private readonly IConfiguration m_configuration; // Az appsettings.json elérése
 
-        public UserController(AppDbContext context, IConfiguration configuration)
+        public UserController(AppDbContext p_context, IConfiguration p_configuration)
         {
-            m_context = context;
-            m_configuration = configuration;
+            m_context = p_context;
+            m_configuration = p_configuration;
         }
 
         [HttpPost("register")]

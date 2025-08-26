@@ -41,17 +41,17 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCarBrand(int p_id, [FromBody] CarBrand p_updatedBrand)
+        public async Task<IActionResult> UpdateCarBrand(int id, [FromBody] CarBrand p_updatedBrand)
         {
             if (p_updatedBrand == null || string.IsNullOrWhiteSpace(p_updatedBrand.Name))
             {
                 return BadRequest("Az autómárka neve nem lehet üres!");
             }
 
-            var existingBrand = await m_context.CarBrands.FindAsync(p_id);
+            var existingBrand = await m_context.CarBrands.FindAsync(id);
             if (existingBrand == null)
             {
-                return NotFound($"Nincs autómárka ezzel az ID-vel: {p_id}");
+                return NotFound($"Nincs autómárka ezzel az ID-vel: {id}");
             }
 
             existingBrand.Name = p_updatedBrand.Name;
@@ -61,15 +61,15 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCarBrand(int p_id)
+        public async Task<IActionResult> DeleteCarBrand(int id)
         {
             var brand = await m_context.CarBrands
                 .Include(cb => cb.CarModels)
-                .FirstOrDefaultAsync(cb => cb.Id == p_id);
+                .FirstOrDefaultAsync(cb => cb.Id == id);
 
             if (brand == null)
             {
-                return NotFound($"Nincs autómárka ezzel az ID-vel: {p_id}");
+                return NotFound($"Nincs autómárka ezzel az ID-vel: {id}");
             }
 
             if (brand.CarModels.Any())

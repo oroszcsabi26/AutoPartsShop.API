@@ -11,9 +11,9 @@ namespace AutoPartsShop.API.Controllers
     {
         private readonly AppDbContext m_context;
 
-        public EquipmentCategoryController(AppDbContext context)
+        public EquipmentCategoryController(AppDbContext p_context)
         {
-            m_context = context;
+            m_context = p_context;
         }
 
         [HttpGet]
@@ -24,13 +24,13 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<EquipmentCategory>> GetEquipmentCategory(int p_id)
+        public async Task<ActionResult<EquipmentCategory>> GetEquipmentCategory(int id)
         {
-            var category = await m_context.EquipmentCategories.FindAsync(p_id);
+            var category = await m_context.EquipmentCategories.FindAsync(id);
 
             if (category == null)
             {
-                return NotFound($"Nem található kategória ezzel az ID-vel: {p_id}");
+                return NotFound($"Nem található kategória ezzel az ID-vel: {id}");
             }
 
             return category;
@@ -57,12 +57,12 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEquipmentCategory(int p_id, [FromBody] EquipmentCategory p_updatedCategory)
+        public async Task<IActionResult> UpdateEquipmentCategory(int id, [FromBody] EquipmentCategory p_updatedCategory)
         {
-            var existingCategory = await m_context.EquipmentCategories.FindAsync(p_id);
+            var existingCategory = await m_context.EquipmentCategories.FindAsync(id);
             if (existingCategory == null)
             {
-                return NotFound($"Nem található kategória ezzel az ID-vel: {p_id}");
+                return NotFound($"Nem található kategória ezzel az ID-vel: {id}");
             }
 
             if (string.IsNullOrWhiteSpace(p_updatedCategory.Name))
@@ -77,15 +77,15 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEquipmentCategory(int p_id)
+        public async Task<IActionResult> DeleteEquipmentCategory(int id)
         {
-            var category = await m_context.EquipmentCategories.FindAsync(p_id);
+            var category = await m_context.EquipmentCategories.FindAsync(id);
             if (category == null)
             {
-                return NotFound($"Nem található kategória ezzel az ID-vel: {p_id}");
+                return NotFound($"Nem található kategória ezzel az ID-vel: {id}");
             }
 
-            var hasEquipment = await m_context.Equipments.AnyAsync(e => e.EquipmentCategoryId == p_id);
+            var hasEquipment = await m_context.Equipments.AnyAsync(e => e.EquipmentCategoryId == id);
             if (hasEquipment)
             {
                 return BadRequest("Nem törölhető, mert vannak hozzá tartozó felszerelési cikkek!");

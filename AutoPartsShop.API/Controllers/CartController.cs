@@ -80,7 +80,7 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPut("update/{cartItemId}/{quantity}")]
-        public async Task<IActionResult> UpdateCartItemQuantity(int p_cartItemId, int p_quantity)
+        public async Task<IActionResult> UpdateCartItemQuantity(int cartItemId, int quantity)
         {
             var userId = GetUserId();
             if (userId == null) return Unauthorized("Felhasználó azonosítása sikertelen!");
@@ -88,17 +88,17 @@ namespace AutoPartsShop.API.Controllers
             var cart = await m_context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId);
             if (cart == null) return NotFound("A felhasználónak nincs kosara!");
 
-            var item = cart.Items.FirstOrDefault(ci => ci.Id == p_cartItemId);
+            var item = cart.Items.FirstOrDefault(ci => ci.Id == cartItemId);
             if (item == null) return NotFound("Nincs ilyen termék a kosárban!");
 
-            item.Quantity = Math.Max(1, p_quantity);
+            item.Quantity = Math.Max(1, quantity);
             await m_context.SaveChangesAsync();
 
             return Ok(new { message = "Termék mennyisége frissítve!", cartItem = item });
         }
 
         [HttpDelete("remove/{cartItemId}")]
-        public async Task<IActionResult> RemoveFromCart(int p_cartItemId)
+        public async Task<IActionResult> RemoveFromCart(int cartItemId)
         {
             var userId = GetUserId();
             if (userId == null) return Unauthorized("Felhasználó azonosítása sikertelen!");
@@ -106,7 +106,7 @@ namespace AutoPartsShop.API.Controllers
             var cart = await m_context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId);
             if (cart == null) return NotFound("A felhasználónak nincs kosara!");
 
-            var item = cart.Items.FirstOrDefault(ci => ci.Id == p_cartItemId);
+            var item = cart.Items.FirstOrDefault(ci => ci.Id == cartItemId);
             if (item == null) return NotFound("Nincs ilyen termék a kosárban!");
 
             cart.Items.Remove(item);

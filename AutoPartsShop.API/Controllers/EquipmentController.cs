@@ -14,10 +14,10 @@ namespace AutoPartsShop.API.Controllers
         private readonly AppDbContext m_context;
         private readonly AzureBlobStorageService m_blobStorageService;
 
-        public EquipmentController(AppDbContext context, AzureBlobStorageService blobStorageService)
+        public EquipmentController(AppDbContext p_context, AzureBlobStorageService p_blobStorageService)
         {
-            m_context = context;
-            m_blobStorageService = blobStorageService;
+            m_context = p_context;
+            m_blobStorageService = p_blobStorageService;
         }
 
         [HttpGet]
@@ -99,11 +99,11 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEquipment(int p_id, [FromBody] Equipment p_updatedEquipment, IFormFile? p_imageFile)
+        public async Task<IActionResult> UpdateEquipment(int id, [FromBody] Equipment p_updatedEquipment, IFormFile? p_imageFile)
         {
-            var existingEquipment = await m_context.Equipments.FindAsync(p_id);
+            var existingEquipment = await m_context.Equipments.FindAsync(id);
             if (existingEquipment == null)
-                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {p_id}");
+                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {id}");
 
             existingEquipment.Name = p_updatedEquipment.Name;
             existingEquipment.Manufacturer = p_updatedEquipment.Manufacturer;
@@ -127,11 +127,11 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEquipment(int p_id)
+        public async Task<IActionResult> DeleteEquipment(int id)
         {
-            var equipment = await m_context.Equipments.FindAsync(p_id);
+            var equipment = await m_context.Equipments.FindAsync(id);
             if (equipment == null)
-                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {p_id}");
+                return NotFound($"Nem található felszerelési cikk ezzel az ID-vel: {id}");
 
             m_context.Equipments.Remove(equipment);
             await m_context.SaveChangesAsync();

@@ -23,15 +23,15 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("brand/{brandId}")]
-        public async Task<ActionResult<IEnumerable<CarModel>>> GetModelsByBrand(int p_brandId)
+        public async Task<ActionResult<IEnumerable<CarModel>>> GetModelsByBrand(int brandId)
         {
             var models = await m_context.CarModels
-                                       .Where(cm => cm.CarBrandId == p_brandId)
+                                       .Where(cm => cm.CarBrandId == brandId)
                                        .ToListAsync();
 
             if (models == null || models.Count == 0)
             {
-                return NotFound($"Nincs autómodell ezzel a márka ID-vel: {p_brandId}");
+                return NotFound($"Nincs autómodell ezzel a márka ID-vel: {brandId}");
             }
 
             return models;

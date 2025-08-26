@@ -22,10 +22,10 @@ namespace AutoPartsShop.API.Controllers
         private readonly AppDbContext m_context;
         private readonly IEmailService m_emailService;
 
-        public OrderController(AppDbContext context, IEmailService emailService)
+        public OrderController(AppDbContext p_context, IEmailService p_emailService)
         {
-            m_context = context;
-            m_emailService = emailService;
+            m_context = p_context;
+            m_emailService = p_emailService;
         }
 
         [HttpPost("create")]
@@ -176,7 +176,7 @@ namespace AutoPartsShop.API.Controllers
 
         [HttpDelete("delete/{id}")]
         [Authorize]
-        public async Task<IActionResult> DeleteOrder(int p_id)
+        public async Task<IActionResult> DeleteOrder(int id)
         {
             var userId = GetUserId();
             if (userId == null)
@@ -186,9 +186,9 @@ namespace AutoPartsShop.API.Controllers
             if (user == null || !user.IsAdmin)
                 return Forbid("Nincs jogosultságod a rendelés törlésére!");
 
-            var order = await m_context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == p_id);
+            var order = await m_context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == id);
             if (order == null)
-                return NotFound($"Nem található rendelés ezzel az ID-vel: {p_id}");
+                return NotFound($"Nem található rendelés ezzel az ID-vel: {id}");
 
             m_context.Orders.Remove(order);
             await m_context.SaveChangesAsync();
@@ -212,7 +212,7 @@ namespace AutoPartsShop.API.Controllers
 
         [HttpPut("update-status/{orderId}")]
         [Authorize]
-        public async Task<IActionResult> UpdateOrderStatus(int p_orderId, [FromBody] UpdateStatusRequest p_request)
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] UpdateStatusRequest p_request)
         {
             var userId = GetUserId();
             if (userId == null)
@@ -222,9 +222,9 @@ namespace AutoPartsShop.API.Controllers
             if (user == null || !user.IsAdmin)
                 return Forbid("Nincs jogosultságod a rendelés módosításához!");
 
-            var order = await m_context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == p_orderId);
+            var order = await m_context.Orders.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == orderId);
             if (order == null)
-                return NotFound($"A rendelés nem található azonosítóval: {p_orderId}");
+                return NotFound($"A rendelés nem található azonosítóval: {orderId}");
 
             if (!Enum.TryParse<OrderStatus>(p_request.NewStatus, out var parsedStatus))
                 return BadRequest($"Érvénytelen rendelés státusz: {p_request.NewStatus}");

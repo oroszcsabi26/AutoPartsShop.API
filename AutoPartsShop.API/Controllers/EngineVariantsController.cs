@@ -11,16 +11,16 @@ namespace AutoPartsShop.API.Controllers
     {
         private readonly AppDbContext m_context;
 
-        public EngineVariantsController(AppDbContext context)
+        public EngineVariantsController(AppDbContext p_context)
         {
-            m_context = context;
+            m_context = p_context;
         }
 
         [HttpGet("carModel/{carModelId}")]
-        public async Task<ActionResult<IEnumerable<EngineVariant>>> GetByCarModel(int p_carModelId)
+        public async Task<ActionResult<IEnumerable<EngineVariant>>> GetByCarModel(int carModelId)
         {
             var variants = await m_context.EngineVariants
-                .Where(ev => ev.CarModelId == p_carModelId)
+                .Where(ev => ev.CarModelId == carModelId)
                 .ToListAsync();
 
             return Ok(variants);
@@ -40,16 +40,16 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<EngineVariant>> GetById(int p_id)
+        public async Task<ActionResult<EngineVariant>> GetById(int id)
         {
-            var ev = await m_context.EngineVariants.FindAsync(p_id);
+            var ev = await m_context.EngineVariants.FindAsync(id);
             return ev is null ? NotFound() : Ok(ev);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int p_id, [FromBody] EngineVariant p_variant)
+        public async Task<IActionResult> Update(int id, [FromBody] EngineVariant p_variant)
         {
-            if (p_id != p_variant.Id)
+            if (id != p_variant.Id)
                 return BadRequest("Az URL-ben lévő ID nem egyezik a törzzsel.");
 
             var modelExists = await m_context.CarModels.AnyAsync(cm => cm.Id == p_variant.CarModelId);
@@ -60,7 +60,7 @@ namespace AutoPartsShop.API.Controllers
             if (validationError is not null)
                 return BadRequest(validationError);
 
-            var existing = await m_context.EngineVariants.FindAsync(p_id);
+            var existing = await m_context.EngineVariants.FindAsync(id);
             if (existing is null) return NotFound();
 
             existing.CarModelId = p_variant.CarModelId;
@@ -74,11 +74,11 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete(int p_id)
+        public async Task<IActionResult> Delete(int id)
         {
             var ev = await m_context.EngineVariants
                 .Include(x => x.PartEngineVariants)
-                .FirstOrDefaultAsync(x => x.Id == p_id);
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (ev is null) return NotFound();
 

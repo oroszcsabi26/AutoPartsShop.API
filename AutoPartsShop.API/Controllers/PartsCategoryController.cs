@@ -14,9 +14,9 @@ namespace AutoPartsShop.API.Controllers
     {
         private readonly AppDbContext m_context;
 
-        public PartsCategoryController(AppDbContext context)
+        public PartsCategoryController(AppDbContext p_context)
         {
-            m_context = context;
+            m_context = p_context;
         }
 
         [HttpGet]
@@ -46,12 +46,12 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePartsCategory(int p_id, [FromBody] PartsCategory p_updatedCategory)
+        public async Task<IActionResult> UpdatePartsCategory(int id, [FromBody] PartsCategory p_updatedCategory)
         {
-            var existingCategory = await m_context.PartsCategories.FindAsync(p_id);
+            var existingCategory = await m_context.PartsCategories.FindAsync(id);
             if (existingCategory == null)
             {
-                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {p_id}");
+                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {id}");
             }
 
             if (string.IsNullOrWhiteSpace(p_updatedCategory.Name))
@@ -66,12 +66,12 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePartsCategory(int p_id)
+        public async Task<IActionResult> DeletePartsCategory(int id)
         {
-            var category = await m_context.PartsCategories.FindAsync(p_id);
+            var category = await m_context.PartsCategories.FindAsync(id);
             if (category == null)
             {
-                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {p_id}");
+                return NotFound($"Nem található alkatrész kategória ezzel az ID-val: {id}");
             }
 
             m_context.PartsCategories.Remove(category);
