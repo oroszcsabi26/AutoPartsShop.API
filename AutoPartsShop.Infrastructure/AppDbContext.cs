@@ -23,6 +23,7 @@ namespace AutoPartsShop.Infrastructure
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<EngineVariant> EngineVariants { get; set; }
         public DbSet<PartEngineVariant> PartEngineVariants { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder p_modelBuilder)
         {
@@ -133,7 +134,17 @@ namespace AutoPartsShop.Infrastructure
                 .HasOne(pev => pev.EngineVariant)
                 .WithMany(ev => ev.PartEngineVariants)
                 .HasForeignKey(pev => pev.EngineVariantId)
-                .OnDelete(DeleteBehavior.Restrict);  
+                .OnDelete(DeleteBehavior.Restrict);
+
+            p_modelBuilder.Entity<PasswordResetToken>()
+                .HasIndex(t => t.Token)
+                .IsUnique();
+
+            p_modelBuilder.Entity<PasswordResetToken>()
+                .HasOne(t => t.User)
+                .WithMany(u => u.PasswordResetTokens)        
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

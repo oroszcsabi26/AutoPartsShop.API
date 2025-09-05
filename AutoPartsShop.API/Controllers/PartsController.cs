@@ -270,7 +270,7 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<PartDisplay>>> SearchParts([FromQuery] string? p_name, [FromQuery] int? p_carModelId, [FromQuery] int? p_partsCategoryId, [FromQuery] int? p_engineVariantId)
+        public async Task<ActionResult<IEnumerable<PartDisplay>>> SearchParts([FromQuery] string? name, [FromQuery] int? carModelId, [FromQuery] int? partsCategoryId, [FromQuery] int? engineVariantId)
         {
             IQueryable<Part> query = m_context.Parts
                 .Include(p => p.CarModel)
@@ -278,17 +278,17 @@ namespace AutoPartsShop.API.Controllers
                 .Include(p => p.PartsCategory)
                 .Include(p => p.PartEngineVariants);
 
-            if (!string.IsNullOrWhiteSpace(p_name))
-                query = query.Where(p => p.Name.Contains(p_name));
+            if (!string.IsNullOrWhiteSpace(name))
+                query = query.Where(p => p.Name.Contains(name));
 
-            if (p_carModelId.HasValue)
-                query = query.Where(p => p.CarModelId == p_carModelId.Value);
+            if (carModelId.HasValue)
+                query = query.Where(p => p.CarModelId == carModelId.Value);
 
-            if (p_partsCategoryId.HasValue)
-                query = query.Where(p => p.PartsCategoryId == p_partsCategoryId.Value);
+            if (partsCategoryId.HasValue)
+                query = query.Where(p => p.PartsCategoryId == partsCategoryId.Value);
 
-            if (p_engineVariantId.HasValue)
-                query = query.Where(p => p.PartEngineVariants.Any(pev => pev.EngineVariantId == p_engineVariantId.Value));
+            if (engineVariantId.HasValue)
+                query = query.Where(p => p.PartEngineVariants.Any(pev => pev.EngineVariantId == engineVariantId.Value));
 
             var parts = await query.ToListAsync();
 

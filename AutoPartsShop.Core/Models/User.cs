@@ -40,5 +40,20 @@ namespace AutoPartsShop.Core.Models
         public List<Order> Orders { get; set; } = new List<Order>();
 
         public bool IsAdmin { get; set; } = false; 
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? DeletedAt { get; set; }
+
+        public DateTime? LastLoginAt { get; set; }
+
+        [MaxLength(200)]
+        public string? PasswordResetToken { get; set; }   
+
+        public DateTime? PasswordResetTokenExpiresAt { get; set; } 
+
+        public List<PasswordResetToken> PasswordResetTokens { get; set; } = new();
     }
 }

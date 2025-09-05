@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using AutoPartsShop.Core.Helpers;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace AutoPartsShop.API.Controllers
 {
@@ -20,11 +21,13 @@ namespace AutoPartsShop.API.Controllers
     {
         private readonly AppDbContext m_context;
         private readonly IConfiguration m_configuration; // Az appsettings.json elérése
+        private readonly IEmailService m_emailService;
 
-        public UserController(AppDbContext p_context, IConfiguration p_configuration)
+        public UserController(AppDbContext p_context, IConfiguration p_configuration, IEmailService p_emailService)
         {
             m_context = p_context;
             m_configuration = p_configuration;
+            m_emailService = p_emailService;
         }
 
         [HttpPost("register")]
@@ -52,6 +55,8 @@ namespace AutoPartsShop.API.Controllers
             p_newUser.PasswordHash = PasswordHelper.HashPassword(p_newUser.PasswordHash);
 
             m_context.Users.Add(p_newUser);
+            p_newUser.CreatedAt = DateTime.UtcNow;
+            p_newUser.IsActive = true;
             await m_context.SaveChangesAsync();
 
             return Ok(new
@@ -75,10 +80,20 @@ namespace AutoPartsShop.API.Controllers
                 return BadRequest("Az e-mail és jelszó megadása kötelező!");
             }
 
-            var user = await m_context.Users.FirstOrDefaultAsync(u => u.Email == p_request.Email);
+            var email = p_request.Email.Trim().ToLower();
+            var user = await m_context.Users.FirstOrDefaultAsync(u => u.Email == email);       
             if (user == null)
             {
                 return Unauthorized("Hibás e-mail vagy jelszó!");
+            }
+
+            if (user.DeletedAt != null)
+            {
+                return Forbid("A fiók törölve lett, a bejelentkezés nem engedélyezett.");
+            }
+            if (!user.IsActive)
+            {
+                return Forbid("A fiók deaktiválva van. Kérjük, vedd fel a kapcsolatot az ügyfélszolgálattal.");
             }
 
             if (!VerifyPassword(p_request.Password, user.PasswordHash))
@@ -86,8 +101,10 @@ namespace AutoPartsShop.API.Controllers
                 return Unauthorized("Hibás e-mail vagy jelszó!");
             }
 
-            var token = GenerateJwtToken(user);
+            user.LastLoginAt = DateTime.UtcNow;
+            await m_context.SaveChangesAsync();
 
+            var token = GenerateJwtToken(user);
             return Ok(new
             {
                 message = "Sikeres bejelentkezés!",
@@ -112,7 +129,7 @@ namespace AutoPartsShop.API.Controllers
             {
                 new Claim(JwtRegisteredClaimNames.Sub, p_user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, p_user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) // Egyedi token azonosító
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) 
             };
 
             var credentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
@@ -295,6 +312,111 @@ namespace AutoPartsShop.API.Controllers
             await m_context.SaveChangesAsync();
 
             return Ok(new { message = "Admin adatai sikeresen frissítve!" });
+        }
+
+        [HttpPost("reset-request")]
+        [AllowAnonymous] // a login oldalon nem bejelentkezett user is kérhet resetet
+        public async Task<IActionResult> RequestPasswordReset([FromBody] ResetPasswordRequestDto p_dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Érvénytelen kérés.");
+
+            var email = p_dto.Email.Trim().ToLower();
+
+            var user = await m_context.Users
+                .FirstOrDefaultAsync(u => u.Email == email && u.DeletedAt == null);
+
+            // Mindig ugyanezt a választ adjuk vissza, hogy ne lehessen "email létezést" szondázni.
+            var genericOk = Ok(new { message = "Ha az e-mail cím létezik a rendszerben, küldtünk rá egy visszaállítási linket." });
+
+            if (user == null)
+                return genericOk;
+
+            var oldTokens = m_context.PasswordResetTokens
+                .Where(t => t.UserId == user.Id && (t.UsedAt != null || t.ExpiresAt < DateTime.UtcNow));
+                m_context.PasswordResetTokens.RemoveRange(oldTokens);
+
+            var bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            var token = WebEncoders.Base64UrlEncode(bytes);
+
+            var minutes = m_configuration.GetValue<int?>("PasswordReset:TokenMinutes") ?? 60;
+            var prt = new PasswordResetToken
+            {
+                UserId = user.Id,
+                Token = token,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(minutes),
+                CreatedAt = DateTime.UtcNow,
+                UsedAt = null
+            };
+
+            m_context.PasswordResetTokens.Add(prt);
+            await m_context.SaveChangesAsync();
+
+            var baseUrl = m_configuration["PasswordReset:FrontendBaseUrl"]
+                          ?? "http://localhost:4200/reset-password";
+
+            var resetLink = $"{baseUrl}?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(email)}";
+
+            try
+            {
+                var subject = "Jelszó visszaállítása";
+                var body =
+                    $"Kedves {user.FirstName} {user.LastName}!\n\n" +
+                    $"A jelszavad visszaállításához kattints az alábbi linkre (a link {minutes} percig érvényes):\n\n" +
+                    $"{resetLink}\n\n" +
+                    $"Ha nem te kérted, hagyd figyelmen kívül ezt az üzenetet.\n\n" +
+                    $"Üdvözlettel:\nAutoPartsShop";
+
+                await m_emailService.SendEmailAsync(user.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ResetRequest] E-mail küldési hiba: {ex.Message}");
+            }
+
+            return genericOk;
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ConfirmPasswordReset([FromBody] ResetPasswordConfirmDto p_dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Érvénytelen adatok.");
+
+            var email = p_dto.Email.Trim().ToLower();
+
+            var user = await m_context.Users
+                .FirstOrDefaultAsync(u => u.Email == email && u.DeletedAt == null);
+
+            var genericError = BadRequest("A link érvénytelen vagy lejárt.");
+
+            if (user == null)
+                return genericError;
+
+            var now = DateTime.UtcNow;
+            var tokenRow = await m_context.PasswordResetTokens
+                .FirstOrDefaultAsync(t =>
+                    t.UserId == user.Id &&
+                    t.Token == p_dto.Token &&
+                    t.UsedAt == null &&
+                    t.ExpiresAt > now);
+
+            if (tokenRow == null)
+                return genericError;
+
+            user.PasswordHash = PasswordHelper.HashPassword(p_dto.NewPassword);
+
+            tokenRow.UsedAt = now;
+
+            var otherActiveTokens = m_context.PasswordResetTokens
+                .Where(t => t.UserId == user.Id && t.UsedAt == null && t.Id != tokenRow.Id);
+
+            await otherActiveTokens.ForEachAsync(t => t.UsedAt = now);
+            await m_context.SaveChangesAsync();
+
+            return Ok(new { message = "A jelszó sikeresen frissült. Most már bejelentkezhetsz az új jelszóval." });
         }
     }
 }
