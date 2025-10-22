@@ -60,10 +60,10 @@ namespace AutoPartsShop.Infrastructure
                 .HasColumnType("decimal(18,2)");
 
             p_modelBuilder.Entity<Cart>()
-                .HasMany(c => c.Items)
-                .WithOne(ci => ci.Cart)
-                .HasForeignKey(ci => ci.CartId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasMany(c => c.Items) //"Egy kosárban sok Item lehet (CartItem-ek listája a Cart.Items property-ben)."
+                .WithOne(ci => ci.Cart) // Egy kosár-tételnek (CartItem) pontosan egy kosara van (Cart property)."
+                .HasForeignKey(ci => ci.CartId) //A kosár-tételben (CartItem) a CartId mező mondja meg, hogy melyik kosárhoz tartozik
+                .OnDelete(DeleteBehavior.Cascade); //Ha kitörlöd a kosarat (Cart), akkor az összes hozzá tartozó tételt (CartItem) is töröld automatikusan."
 
             p_modelBuilder.Entity<CartItem>()
                 .HasOne(ci => ci.Part)

@@ -123,8 +123,8 @@ namespace AutoPartsShop.API.Controllers
                 var userId = GetUserId();
                 if (userId == null) return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-                var cart = await m_context.Carts.Include(c => c.Items)
-                                               .FirstOrDefaultAsync(c => c.UserId == userId);
+                var cart = await m_context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId);
+
                 if (cart == null) return Ok(new { message = "A kosár nem létezik, nincs mit törölni." });
 
                 m_context.CartItems.RemoveRange(cart.Items);
@@ -168,16 +168,16 @@ namespace AutoPartsShop.API.Controllers
         [HttpPost("create")]
         public async Task<ActionResult<Cart>> CreateCart()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetUserId();
             if (userId == null) return Unauthorized("Felhasználó azonosítása sikertelen!");
 
-            var existingCart = await m_context.Carts.FirstOrDefaultAsync(c => c.UserId == int.Parse(userId));
+            var existingCart = await m_context.Carts.FirstOrDefaultAsync(c => c.UserId == userId);
             if (existingCart != null)
             {
                 return BadRequest("A felhasználónak már van kosara!");
             }
 
-            var newCart = new Cart { UserId = int.Parse(userId) };
+            var newCart = new Cart { UserId = userId };
             m_context.Carts.Add(newCart);
             await m_context.SaveChangesAsync();
 

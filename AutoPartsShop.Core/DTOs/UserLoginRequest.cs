@@ -9,6 +9,7 @@ namespace AutoPartsShop.Core.DTOs
 {
     public class UserLoginRequest
     {
+
         [Required]
         public string Email { get; set; } = string.Empty;
 

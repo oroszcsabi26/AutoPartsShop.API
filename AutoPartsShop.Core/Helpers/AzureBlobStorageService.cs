@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace AutoPartShop.Core.Helpers
 {
-    public class AzureBlobStorageService
+    public class AzureBlobStorageService : IAzureBlobStorageService
     {
         private readonly BlobContainerClient m_containerClient;
 

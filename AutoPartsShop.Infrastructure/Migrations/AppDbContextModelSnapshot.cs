@@ -17,7 +17,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.1")
+                .HasAnnotation("ProductVersion", "9.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -36,7 +36,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CarBrands");
+                    b.ToTable("CarBrands", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.CarModel", b =>
@@ -61,7 +61,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("CarBrandId");
 
-                    b.ToTable("CarModels");
+                    b.ToTable("CarModels", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.Cart", b =>
@@ -81,7 +81,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[UserId] IS NOT NULL");
 
-                    b.ToTable("Carts");
+                    b.ToTable("Carts", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.EngineVariant", b =>
@@ -112,7 +112,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("CarModelId");
 
-                    b.ToTable("EngineVariants");
+                    b.ToTable("EngineVariants", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.Equipment", b =>
@@ -159,7 +159,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("EquipmentCategoryId");
 
-                    b.ToTable("Equipments");
+                    b.ToTable("Equipments", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.EquipmentCategory", b =>
@@ -176,7 +176,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("EquipmentCategories");
+                    b.ToTable("EquipmentCategories", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.Order", b =>
@@ -224,7 +224,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.OrderItem", b =>
@@ -266,7 +266,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("PartId");
 
-                    b.ToTable("OrderItems");
+                    b.ToTable("OrderItems", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.Part", b =>
@@ -324,7 +324,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("PartsCategoryId");
 
-                    b.ToTable("Parts");
+                    b.ToTable("Parts", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.PartEngineVariant", b =>
@@ -339,7 +339,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("EngineVariantId");
 
-                    b.ToTable("PartEngineVariants");
+                    b.ToTable("PartEngineVariants", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.PartsCategory", b =>
@@ -356,7 +356,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PartsCategories");
+                    b.ToTable("PartsCategories", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.PasswordResetToken", b =>
@@ -391,7 +391,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PasswordResetTokens");
+                    b.ToTable("PasswordResetTokens", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.User", b =>
@@ -461,7 +461,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("CartItem", b =>
@@ -503,7 +503,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.HasIndex("PartId");
 
-                    b.ToTable("CartItems");
+                    b.ToTable("CartItems", (string)null);
                 });
 
             modelBuilder.Entity("AutoPartsShop.Core.Models.CarModel", b =>

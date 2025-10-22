@@ -103,15 +103,12 @@ public class AdminUsersController : ControllerBase
             CreatedAt = user.CreatedAt,
             LastLoginAt = user.LastLoginAt,
             DeletedAt = user.DeletedAt,
-            OrderCount = includeOrders ? user.Orders.Count
-                                 : await m_context.Orders.CountAsync(o => o.UserId == user.Id),
-
+            OrderCount = includeOrders ? user.Orders.Count : await m_context.Orders.CountAsync(o => o.UserId == user.Id),
             PhoneNumber = user.PhoneNumber,
             Address = user.Address,
             ShippingAddress = user.ShippingAddress,
 
-            Orders = includeOrders
-                ? user.Orders
+            Orders = includeOrders ? user.Orders
                     .OrderByDescending(o => o.OrderDate)
                     .Select(o => new AdminUserOrderDto
                     {

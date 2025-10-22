@@ -12,9 +12,9 @@ namespace AutoPartsShop.API.Controllers
     public class EquipmentController : ControllerBase
     {
         private readonly AppDbContext m_context;
-        private readonly AzureBlobStorageService m_blobStorageService;
+        private readonly IAzureBlobStorageService m_blobStorageService;
 
-        public EquipmentController(AppDbContext p_context, AzureBlobStorageService p_blobStorageService)
+        public EquipmentController(AppDbContext p_context, IAzureBlobStorageService p_blobStorageService)
         {
             m_context = p_context;
             m_blobStorageService = p_blobStorageService;

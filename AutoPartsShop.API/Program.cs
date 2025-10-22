@@ -60,8 +60,6 @@ namespace AutoPartsShop.API
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
-            builder.Services.AddControllers();
-
             // Swagger/OpenAPI konfiguráció
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
@@ -92,16 +90,29 @@ namespace AutoPartsShop.API
             });
 
             //  Adatbázis kapcsolat beállítása
+            var isTesting = builder.Environment.IsEnvironment("Testing");
+
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            {
+                if (isTesting)
+                {
+                    // Integration tesztekhez InMemory
+                    options.UseInMemoryDatabase("TestsDb");
+                }
+                else
+                {
+                    // Production/dev
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+                }
+            });
 
             builder.Services.AddScoped<IEmailService, EmailService>();
-            builder.Services.AddSingleton<AzureBlobStorageService>();
+            builder.Services.AddSingleton<IAzureBlobStorageService, AzureBlobStorageService>();
 
             var app = builder.Build();
 
             // Middleware konfiguráció
-            if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+            if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();

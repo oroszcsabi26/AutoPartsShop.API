@@ -26,8 +26,8 @@ namespace AutoPartsShop.API.Controllers
         public async Task<ActionResult<IEnumerable<CarModel>>> GetModelsByBrand(int brandId)
         {
             var models = await m_context.CarModels
-                                       .Where(cm => cm.CarBrandId == brandId)
-                                       .ToListAsync();
+                            .Where(cm => cm.CarBrandId == brandId)
+                            .ToListAsync();
 
             if (models == null || models.Count == 0)
             {
