@@ -99,7 +99,7 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEquipment(int id, [FromBody] Equipment p_updatedEquipment, IFormFile? p_imageFile)
+        public async Task<IActionResult> UpdateEquipment(int id, [FromForm] Equipment p_updatedEquipment, IFormFile? p_imageFile)
         {
             var existingEquipment = await m_context.Equipments.FindAsync(id);
             if (existingEquipment == null)

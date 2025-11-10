@@ -7,7 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AutoPartsShop.Tests.Helpers
+namespace AutoPartsShop.Tests.Unit.Helpers
 {
     public static class TestHttpContextHelper
     {

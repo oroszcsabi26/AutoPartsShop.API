@@ -1,13 +1,13 @@
 ﻿using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
-using AutoPartsShop.Tests.Integration;
+using AutoPartsShop.Tests.Integration.Factories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using Xunit;
 
-namespace AutoPartsShop.Tests
+namespace AutoPartsShop.Tests.Integration.Controllers
 {
     public class PartsControllerTests : IClassFixture<DockerWebApplicationFactory>
     {
@@ -99,7 +99,7 @@ namespace AutoPartsShop.Tests
 
             var created = await response.Content.ReadFromJsonAsync<Part>();
             Assert.NotNull(created);
-            Assert.Contains("fake.blob.core.windows.net", created!.ImageUrl);
+            Assert.Contains("http://127.0.0.1:10000/devstoreaccount1/test-container", created!.ImageUrl);
 
             var partInDb = await db.Parts.FindAsync(created.Id);
             Assert.NotNull(partInDb);

@@ -1,6 +1,6 @@
 ﻿using AutoPartsShop.Core.Helpers;
 
-namespace AutoPartsShop.Tests.Helpers
+namespace AutoPartsShop.Tests.Unit.Helpers
 {
     public class FakeEmailService : IEmailService
     {

@@ -2,20 +2,20 @@
 using AutoPartsShop.Core.Helpers;
 using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
-using AutoPartsShop.Tests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using AutoPartsShop.Tests.Unit.Helpers;
 
-namespace AutoPartsShop.Tests
+namespace AutoPartsShop.Tests.Unit.Controllers
 {
     public class AdminUsersControllerTests
     {
-        private readonly AppDbContext _context;
-        private readonly FakeEmailService _fakeEmail;
-        private readonly AdminUsersController _controller;
+        private readonly AppDbContext m_context;
+        private readonly FakeEmailService m_fakeEmail;
+        private readonly AdminUsersController m_controller;
 
         public AdminUsersControllerTests()
         {
@@ -23,10 +23,10 @@ namespace AutoPartsShop.Tests
                 .UseInMemoryDatabase($"AdminUserTestsDb_{Guid.NewGuid()}")
                 .Options;
 
-            _context = new AppDbContext(options);
-            _fakeEmail = new FakeEmailService();
+            m_context = new AppDbContext(options);
+            m_fakeEmail = new FakeEmailService();
 
-            _controller = new AdminUsersController(_context, _fakeEmail)
+            m_controller = new AdminUsersController(m_context, m_fakeEmail)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -38,7 +38,7 @@ namespace AutoPartsShop.Tests
         [Fact]
         public async Task GetUsers_ShouldReturnUnauthorized_WhenNoUser()
         {
-            var result = await _controller.GetUsers(null, null, null, null);
+            var result = await m_controller.GetUsers(null, null, null, null);
 
             var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
             Assert.Contains("azonosítása sikertelen", unauthorized.Value?.ToString());
@@ -56,12 +56,12 @@ namespace AutoPartsShop.Tests
                 PasswordHash = PasswordHelper.HashPassword("Secret123"),
                 IsAdmin = false
             };
-            _context.Users.Add(u);
-            await _context.SaveChangesAsync();
+            m_context.Users.Add(u);
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, u.Id);
+            TestHttpContextHelper.AttachUser(m_controller, u.Id);
 
-            var result = await _controller.GetUsers(null, null, null, null);
+            var result = await m_controller.GetUsers(null, null, null, null);
 
             // Forbid() -> ForbidResult
             Assert.IsType<ForbidResult>(result);
@@ -97,12 +97,12 @@ namespace AutoPartsShop.Tests
                 PasswordHash = PasswordHelper.HashPassword("y"),
                 IsActive = false
             };
-            _context.Users.AddRange(admin, u1, u2);
-            await _context.SaveChangesAsync();
+            m_context.Users.AddRange(admin, u1, u2);
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.GetUsers(search: "teszt", status: null, from: null, to: null);
+            var result = await m_controller.GetUsers(search: "teszt", status: null, from: null, to: null);
             var ok = Assert.IsType<OkObjectResult>(result);
 
             var json = JsonSerializer.Serialize(ok.Value);
@@ -125,12 +125,12 @@ namespace AutoPartsShop.Tests
                 PasswordHash = PasswordHelper.HashPassword("Admin1234"),
                 IsAdmin = true
             };
-            _context.Users.Add(admin);
-            await _context.SaveChangesAsync();
+            m_context.Users.Add(admin);
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.GetUserDetails(999, includeOrders: false);
+            var result = await m_controller.GetUserDetails(999, includeOrders: false);
             var notFound = Assert.IsType<NotFoundObjectResult>(result);
             Assert.Contains("nem található", notFound.Value?.ToString()?.ToLower());
         }
@@ -156,9 +156,9 @@ namespace AutoPartsShop.Tests
                 PasswordHash = PasswordHelper.HashPassword("P"),
                 IsActive = true
             };
-            _context.Users.AddRange(admin, target);
+            m_context.Users.AddRange(admin, target);
 
-            _context.Orders.Add(new Order
+            m_context.Orders.Add(new Order
             {
                 UserId = target.Id,
                 ShippingAddress = "Cím",
@@ -168,11 +168,11 @@ namespace AutoPartsShop.Tests
                     new OrderItem { ItemType = "Part", Quantity = 2, Price = 1500, Name = "Alkatrész" }
                 }
             });
-            await _context.SaveChangesAsync();
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.GetUserDetails(target.Id, includeOrders: true);
+            var result = await m_controller.GetUserDetails(target.Id, includeOrders: true);
             var ok = Assert.IsType<OkObjectResult>(result);
 
             var json = JsonSerializer.Serialize(ok.Value);
@@ -190,15 +190,15 @@ namespace AutoPartsShop.Tests
         {
             var admin = new User { Id = 40, Email = "admin4@example.com", PasswordHash = "x", IsAdmin = true };
             var target = new User { Id = 41, Email = "user41@example.com", PasswordHash = "y", IsActive = true };
-            _context.Users.AddRange(admin, target);
-            await _context.SaveChangesAsync();
+            m_context.Users.AddRange(admin, target);
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.DeactivateUser(target.Id);
+            var result = await m_controller.DeactivateUser(target.Id);
             var ok = Assert.IsType<OkObjectResult>(result);
 
-            var updated = await _context.Users.FindAsync(target.Id);
+            var updated = await m_context.Users.FindAsync(target.Id);
             Assert.False(updated!.IsActive);
         }
 
@@ -207,15 +207,15 @@ namespace AutoPartsShop.Tests
         {
             var admin = new User { Id = 50, Email = "admin5@example.com", PasswordHash = "x", IsAdmin = true };
             var target = new User { Id = 51, Email = "user51@example.com", PasswordHash = "y", IsActive = false };
-            _context.Users.AddRange(admin, target);
-            await _context.SaveChangesAsync();
+            m_context.Users.AddRange(admin, target);
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.ActivateUser(target.Id);
+            var result = await m_controller.ActivateUser(target.Id);
             var ok = Assert.IsType<OkObjectResult>(result);
 
-            var updated = await _context.Users.FindAsync(target.Id);
+            var updated = await m_context.Users.FindAsync(target.Id);
             Assert.True(updated!.IsActive);
         }
 
@@ -223,12 +223,12 @@ namespace AutoPartsShop.Tests
         public async Task SoftDeleteUser_ShouldBlockSelfDelete()
         {
             var admin = new User { Id = 60, Email = "admin6@example.com", PasswordHash = "x", IsAdmin = true, IsActive = true };
-            _context.Users.Add(admin);
-            await _context.SaveChangesAsync();
+            m_context.Users.Add(admin);
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.SoftDeleteUser(admin.Id);
+            var result = await m_controller.SoftDeleteUser(admin.Id);
             var badRequest = Assert.IsType<BadRequestObjectResult>(result);
             Assert.Contains("saját fiókot", badRequest.Value?.ToString()?.ToLower());
         }
@@ -238,12 +238,12 @@ namespace AutoPartsShop.Tests
         {
             var admin = new User { Id = 70, Email = "admin7@example.com", PasswordHash = "x", IsAdmin = true };
             var admin2 = new User { Id = 71, Email = "admin71@example.com", PasswordHash = "x", IsAdmin = true };
-            _context.Users.AddRange(admin, admin2);
-            await _context.SaveChangesAsync();
+            m_context.Users.AddRange(admin, admin2);
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.SoftDeleteUser(admin2.Id);
+            var result = await m_controller.SoftDeleteUser(admin2.Id);
             var badRequest = Assert.IsType<BadRequestObjectResult>(result);
             Assert.Contains("admin felhasználót nem törölhetsz", badRequest.Value?.ToString()?.ToLower());
         }
@@ -268,9 +268,9 @@ namespace AutoPartsShop.Tests
                     }
                 }
             };
-            _context.Users.AddRange(admin, user);
+            m_context.Users.AddRange(admin, user);
 
-            _context.Orders.AddRange(
+            m_context.Orders.AddRange(
                 new Order
                 {
                     UserId = user.Id,
@@ -292,25 +292,25 @@ namespace AutoPartsShop.Tests
                     }
                 }
             );
-            await _context.SaveChangesAsync();
+            await m_context.SaveChangesAsync();
 
-            TestHttpContextHelper.AttachUser(_controller, admin.Id);
+            TestHttpContextHelper.AttachUser(m_controller, admin.Id);
 
-            var result = await _controller.SoftDeleteUser(user.Id);
+            var result = await m_controller.SoftDeleteUser(user.Id);
             var ok = Assert.IsType<OkObjectResult>(result);
 
-            var refreshed = await _context.Users.FindAsync(user.Id);
+            var refreshed = await m_context.Users.FindAsync(user.Id);
             Assert.False(refreshed!.IsActive);
             Assert.NotNull(refreshed.DeletedAt);
 
-            var ordersLeft = await _context.Orders.CountAsync(o => o.UserId == user.Id);
+            var ordersLeft = await m_context.Orders.CountAsync(o => o.UserId == user.Id);
             Assert.Equal(0, ordersLeft);
 
-            var cart = await _context.Carts.FirstOrDefaultAsync(c => c.UserId == user.Id);
+            var cart = await m_context.Carts.FirstOrDefaultAsync(c => c.UserId == user.Id);
             Assert.Null(cart);
 
-            Assert.Single(_fakeEmail.Sent);
-            Assert.Equal("deluser@example.com", _fakeEmail.Sent[0].To);
+            Assert.Single(m_fakeEmail.Sent);
+            Assert.Equal("deluser@example.com", m_fakeEmail.Sent[0].To);
         }
     }
 }

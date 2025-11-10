@@ -21,7 +21,7 @@ namespace AutoPartsShop.Infrastructure.Services
             {
                 Host = m_configuration["Email:SmtpHost"],
                 Port = int.Parse(m_configuration["Email:SmtpPort"]),
-                EnableSsl = true,
+                EnableSsl = bool.TryParse(m_configuration["Email:EnableSsl"], out var ssl) ? ssl : true,
                 Credentials = new NetworkCredential(
                     m_configuration["Email:SmtpUser"],
                     m_configuration["Email:SmtpPass"]

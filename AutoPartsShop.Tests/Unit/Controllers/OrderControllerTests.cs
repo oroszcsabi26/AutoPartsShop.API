@@ -2,14 +2,14 @@
 using AutoPartsShop.Core.Enums;
 using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
-using AutoPartsShop.Tests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using AutoPartsShop.Tests.Unit.Helpers;
 
-namespace AutoPartsShop.Tests
+namespace AutoPartsShop.Tests.Unit.Controllers
 {
     public class OrderControllerTests
     {
@@ -101,7 +101,7 @@ namespace AutoPartsShop.Tests
                 ShippingAddress = "Teszt utca 1",
                 BillingAddress = "Számla utca 2",
                 Comment = "Kérem gyorsan szállítani.",
-                ShippingMethod = Core.Enums.ShippingMethod.SzemélyesÁtvétel
+                ShippingMethod = ShippingMethod.SzemélyesÁtvétel
             };
 
             // Meghívjuk az OrderController CreateOrder metódusát.
@@ -152,7 +152,7 @@ namespace AutoPartsShop.Tests
                 ShippingAddress = "Teszt utca 1",
                 BillingAddress = "Számla utca 2",
                 Comment = "Üres kosárból nem lehet rendelni.",
-                ShippingMethod = Core.Enums.ShippingMethod.SzemélyesÁtvétel
+                ShippingMethod = ShippingMethod.SzemélyesÁtvétel
             };
 
             // Act – meghívjuk a CreateOrder metódust
@@ -180,7 +180,7 @@ namespace AutoPartsShop.Tests
             {
                 ShippingAddress = "Cím",
                 BillingAddress = "Számlázási cím",
-                ShippingMethod = Core.Enums.ShippingMethod.SzemélyesÁtvétel
+                ShippingMethod = ShippingMethod.SzemélyesÁtvétel
             });
 
             // Válasznak UnauthorizedObjectResult-nak kell lennie
@@ -198,7 +198,7 @@ namespace AutoPartsShop.Tests
                 ShippingAddress = "Régi cím",
                 BillingAddress = "Régi számla",
                 OrderDate = DateTime.UtcNow.AddDays(-2),
-                ShippingMethod = Core.Enums.ShippingMethod.SzemélyesÁtvétel,
+                ShippingMethod = ShippingMethod.SzemélyesÁtvétel,
                 OrderItems = new List<OrderItem>
                 {
                     new OrderItem
@@ -237,7 +237,7 @@ namespace AutoPartsShop.Tests
                 UserId = m_testUserId,
                 ShippingAddress = "Új cím",
                 BillingAddress = "Új számla",
-                ShippingMethod = Core.Enums.ShippingMethod.SzemélyesÁtvétel,
+                ShippingMethod = ShippingMethod.SzemélyesÁtvétel,
             };
 
             // 3. új rendelés leadása
@@ -350,7 +350,6 @@ namespace AutoPartsShop.Tests
             Assert.Equal(2, orders.Count());
         }
 
-        // ---------- DeleteOrder ----------
         [Fact]
         public async Task DeleteOrder_ShouldReturnForbid_WhenUserIsNotAdmin()
         {
@@ -410,7 +409,6 @@ namespace AutoPartsShop.Tests
             Assert.Equal("order.owner@example.com", m_fakeEmailService.Sent[0].To);
         }
 
-        // ---------- UpdateOrderStatus ----------
         [Fact]
         public async Task UpdateOrderStatus_ShouldReturnForbid_WhenUserIsNotAdmin()
         {

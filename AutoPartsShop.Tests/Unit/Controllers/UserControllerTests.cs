@@ -3,15 +3,15 @@ using AutoPartsShop.Core.DTOs;
 using AutoPartsShop.Core.Helpers;
 using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
-using AutoPartsShop.Tests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using AutoPartsShop.Tests.Unit.Helpers;
 
-namespace AutoPartsShop.Tests
+namespace AutoPartsShop.Tests.Unit.Controllers
 {
     public class UserControllerTests
     {
@@ -294,24 +294,6 @@ namespace AutoPartsShop.Tests
             Assert.NotNull(orders);
             Assert.True(orders.Any());
             Assert.True(orders.First().OrderItems.Count >= 1);
-
-            /*
-             using System.Text.Json.Serialization; 
-             
-             var ok = Assert.IsType<OkObjectResult>(result);
-
-            var json = JsonSerializer.Serialize(
-                ok.Value,
-                new JsonSerializerOptions {
-                    ReferenceHandler = ReferenceHandler.IgnoreCycles,
-                    WriteIndented = false
-                });
-
-            using var doc = JsonDocument.Parse(json);
-            var arr = doc.RootElement;
-            Assert.Equal(JsonValueKind.Array, arr.ValueKind);
-            Assert.True(arr.GetArrayLength() >= 1);
-            */
         }
 
         [Fact]

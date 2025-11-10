@@ -1,13 +1,13 @@
 ﻿using AutoPartsShop.Core.Models;
 using AutoPartsShop.Infrastructure;
-using AutoPartsShop.Tests.Integration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using AutoPartsShop.Tests.Integration.Factories;
 
-namespace AutoPartsShop.Tests
+namespace AutoPartsShop.Tests.Integration.Controllers
 {
     public class EngineVariantsControllerTests : IClassFixture<CustomWebApplicationFactory> // xUnit osztály szintű fixture használata miatti inicializáláshoz (itt: CustomWebApplicationFactory) 
     {
@@ -296,7 +296,6 @@ namespace AutoPartsShop.Tests
             Assert.Null(missing);
             var linkCount = await db.PartEngineVariants.CountAsync(pev => pev.EngineVariantId == ev.Id);
             Assert.Equal(0, linkCount);
-
         }
     }
 }

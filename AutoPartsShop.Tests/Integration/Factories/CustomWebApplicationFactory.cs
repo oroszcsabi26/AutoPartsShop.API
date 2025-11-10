@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
-namespace AutoPartsShop.Tests.Integration
+namespace AutoPartsShop.Tests.Integration.Factories
 {
     public class CustomWebApplicationFactory : WebApplicationFactory<Program> //gy alkalmazás memóriában történő elindításához a funkcionális végponttól végpontig tartó tesztekhez
     {

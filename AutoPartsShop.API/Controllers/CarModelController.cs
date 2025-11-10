@@ -46,7 +46,15 @@ namespace AutoPartsShop.API.Controllers
                 return NotFound($"Nincs autómárka ezzel az ID-val: {brandId}");
             }
 
-            p_model.CarBrandId = brandId; 
+            var modelExists = await m_context.CarModels
+                .AnyAsync(cm => cm.CarBrandId == brandId && cm.Name.ToLower() == p_model.Name.ToLower());
+
+            if (modelExists)
+            {
+                return Conflict($"Már létezik autómodell ezzel a névvel: {p_model.Name}");
+            }
+
+            p_model.CarBrandId = brandId;
 
             m_context.CarModels.Add(p_model);
             await m_context.SaveChangesAsync();

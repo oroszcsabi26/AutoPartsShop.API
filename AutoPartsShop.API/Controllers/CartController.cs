@@ -137,21 +137,32 @@ namespace AutoPartsShop.API.Controllers
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                Console.WriteLine($"⚠️ DbUpdateConcurrencyException hiba történt: {ex.Message}");
+                Console.WriteLine($"DbUpdateConcurrencyException hiba történt: {ex.Message}");
                 return StatusCode(500, "Adatbázis ütközés történt a törlés során.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Hiba történt a kosár törlésekor: {ex.Message}");
+                Console.WriteLine($"Hiba történt a kosár törlésekor: {ex.Message}");
                 return StatusCode(500, "Belső szerverhiba történt.");
             }
         }
 
         private int? GetUserId()
         {
-            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-            return userIdClaim != null ? int.Parse(userIdClaim.Value) : (int?)null;
+            try
+            {
+                var claim = HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier);
+                if (claim == null) return null;
+                if (int.TryParse(claim.Value, out var id))
+                    return id;
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
+
 
         private async Task<Cart> GetOrCreateCart(int p_userId)
         {
