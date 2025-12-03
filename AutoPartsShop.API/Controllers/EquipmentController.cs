@@ -107,14 +107,29 @@ namespace AutoPartsShop.API.Controllers
 
             existingEquipment.Name = p_updatedEquipment.Name;
             existingEquipment.Manufacturer = p_updatedEquipment.Manufacturer;
-            existingEquipment.Size = p_updatedEquipment.Size;
             existingEquipment.Price = p_updatedEquipment.Price;
-            existingEquipment.Description = p_updatedEquipment.Description;
-            existingEquipment.Quantity = p_updatedEquipment.Quantity;
-            existingEquipment.ImageUrl = p_updatedEquipment.ImageUrl;
-            existingEquipment.Material = p_updatedEquipment.Material;
-            existingEquipment.Side = p_updatedEquipment.Side;
             existingEquipment.EquipmentCategoryId = p_updatedEquipment.EquipmentCategoryId;
+
+            // Opcionális szöveges mezők – csak akkor írjuk, ha VALÓS érték érkezett
+            if (p_updatedEquipment.Size != null)
+                existingEquipment.Size = p_updatedEquipment.Size;
+
+            if (p_updatedEquipment.Description != null)
+                existingEquipment.Description = p_updatedEquipment.Description;
+
+            if (p_updatedEquipment.Material != null)
+                existingEquipment.Material = p_updatedEquipment.Material;
+
+            if (p_updatedEquipment.Side != null)
+                existingEquipment.Side = p_updatedEquipment.Side;
+
+            // Quantity a modelben nem nullable. Itt csak akkor írjuk, ha > 0 jött (különben hagyjuk régit)
+            if (p_updatedEquipment.Quantity > 0)
+                existingEquipment.Quantity = p_updatedEquipment.Quantity;
+
+            // Kép URL: csak akkor írjuk át, ha kaptunk NEM üres stringet
+            if (!string.IsNullOrWhiteSpace(p_updatedEquipment.ImageUrl))
+                existingEquipment.ImageUrl = p_updatedEquipment.ImageUrl;
 
             if (p_imageFile != null && p_imageFile.Length > 0)
             {

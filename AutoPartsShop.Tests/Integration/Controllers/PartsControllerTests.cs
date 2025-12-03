@@ -91,7 +91,7 @@ namespace AutoPartsShop.Tests.Integration.Controllers
                 { new StringContent("15000"), "Price" },
                 { new StringContent(model.Id.ToString()), "CarModelId" },
                 { new StringContent(category.Id.ToString()), "PartsCategoryId" },
-                { new StreamContent(new MemoryStream(imageBytes)), "p_imageFile", "brake.jpg" }
+                { new StreamContent(new MemoryStream(imageBytes)), "imageFile", "brake.jpg" }
             };
 
             var response = await client.PostAsync("/api/parts", content);

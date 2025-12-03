@@ -114,78 +114,78 @@ namespace AutoPartsShop.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Part>> AddPart([FromForm] Part p_newPart, [FromForm] List<int>? p_engineVariantIds, IFormFile? p_imageFile)
+        public async Task<ActionResult<Part>> AddPart([FromForm] Part newPart, [FromForm] List<int>? engineVariantIds, IFormFile? imageFile)
         {
-            var carModelExists = await m_context.CarModels.AnyAsync(cm => cm.Id == p_newPart.CarModelId);
-            var categoryExists = await m_context.PartsCategories.AnyAsync(pc => pc.Id == p_newPart.PartsCategoryId);
+            var carModelExists = await m_context.CarModels.AnyAsync(cm => cm.Id == newPart.CarModelId);
+            var categoryExists = await m_context.PartsCategories.AnyAsync(pc => pc.Id == newPart.PartsCategoryId);
 
             if (!carModelExists)
             {
-                return BadRequest($"Nincs ilyen autómodell ID: {p_newPart.CarModelId}");
+                return BadRequest($"Nincs ilyen autómodell ID: {newPart.CarModelId}");
             }
 
             if (!categoryExists)
             {
-                return BadRequest($"Nincs ilyen alkatrészkategória ID: {p_newPart.PartsCategoryId}");
+                return BadRequest($"Nincs ilyen alkatrészkategória ID: {newPart.PartsCategoryId}");
             }
 
-            if (string.IsNullOrWhiteSpace(p_newPart.Manufacturer))
+            if (string.IsNullOrWhiteSpace(newPart.Manufacturer))
             {
                 return BadRequest("A gyártó megadása kötelező!");
             }
 
-            if (p_engineVariantIds != null && p_engineVariantIds.Any())
+            if (engineVariantIds != null && engineVariantIds.Any())
             {
-                p_engineVariantIds = p_engineVariantIds.Distinct().ToList();
+                engineVariantIds = engineVariantIds.Distinct().ToList();
 
                 var validEvIds = await m_context.EngineVariants
-                    .Where(ev => p_engineVariantIds.Contains(ev.Id))
+                    .Where(ev => engineVariantIds.Contains(ev.Id))
                     .Select(ev => new { ev.Id, ev.CarModelId })
                     .ToListAsync();
 
-                if (validEvIds.Count != p_engineVariantIds.Count)
+                if (validEvIds.Count != engineVariantIds.Count)
                     return BadRequest("Egy vagy több megadott EngineVariant nem létezik.");
 
-                if (validEvIds.Any(x => x.CarModelId != p_newPart.CarModelId))
+                if (validEvIds.Any(x => x.CarModelId != newPart.CarModelId))
                     return BadRequest("Minden EngineVariantnak ugyanahhoz a CarModelhez kell tartoznia, mint a Part.CarModelId.");
             }
 
-            p_newPart.Quantity = p_newPart.Quantity == 0 ? 1 : p_newPart.Quantity;
-            p_newPart.Description ??= "";
-            p_newPart.Type ??= "";
-            p_newPart.Shape ??= "";
-            p_newPart.Size ??= "";
-            p_newPart.Side ??= "";
-            p_newPart.Material ??= "";
+            newPart.Quantity = newPart.Quantity == 0 ? 1 : newPart.Quantity;
+            newPart.Description ??= "";
+            newPart.Type ??= "";
+            newPart.Shape ??= "";
+            newPart.Size ??= "";
+            newPart.Side ??= "";
+            newPart.Material ??= "";
 
-            if (p_imageFile != null && p_imageFile.Length > 0)
+            if (imageFile != null && imageFile.Length > 0)
             {
-                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(p_imageFile.FileName);
-                string imageUrl = await m_blobStorageService.UploadFileAsync(p_imageFile.OpenReadStream(), fileName);
-                p_newPart.ImageUrl = imageUrl;
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                string imageUrl = await m_blobStorageService.UploadFileAsync(imageFile.OpenReadStream(), fileName);
+                newPart.ImageUrl = imageUrl;
             }
 
-            m_context.Parts.Add(p_newPart);
+            m_context.Parts.Add(newPart);
             await m_context.SaveChangesAsync();
 
-            if (p_engineVariantIds != null)
+            if (engineVariantIds != null)
             {
-                foreach (var evId in p_engineVariantIds)
+                foreach (var evId in engineVariantIds)
                 {
                     m_context.PartEngineVariants.Add(new PartEngineVariant
                     {
-                        PartId = p_newPart.Id,
+                        PartId = newPart.Id,
                         EngineVariantId = evId
                     });
                 }
                 await m_context.SaveChangesAsync();
             }
 
-            return CreatedAtAction(nameof(GetPartById), new { id = p_newPart.Id }, p_newPart);
+            return CreatedAtAction(nameof(GetPartById), new { id = newPart.Id }, newPart);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePart(int id, [FromForm] Part p_updatedPart, [FromForm] List<int>? p_engineVariantIds, IFormFile? p_imageFile)
+        public async Task<IActionResult> UpdatePart(int id, [FromForm] Part p_updatedPart, [FromForm] List<int>? engineVariantIds, IFormFile? imageFile)
         {
             var part = await m_context.Parts
                 .Include(p => p.PartEngineVariants)
@@ -206,31 +206,48 @@ namespace AutoPartsShop.API.Controllers
             part.PartsCategoryId = p_updatedPart.PartsCategoryId;
             part.CarModelId = p_updatedPart.CarModelId;
             part.Manufacturer = p_updatedPart.Manufacturer;
-            part.Quantity = p_updatedPart.Quantity;
-            part.Side = p_updatedPart.Side;
-            part.Shape = p_updatedPart.Shape;
-            part.Size = p_updatedPart.Size;
-            part.Type = p_updatedPart.Type;
-            part.Material = p_updatedPart.Material;
-            part.Description = p_updatedPart.Description;
 
-            if (p_imageFile != null && p_imageFile.Length > 0)
+            if (p_updatedPart.Quantity > 0)
+                part.Quantity = p_updatedPart.Quantity;
+
+            if (p_updatedPart.Side != null)
+                part.Side = p_updatedPart.Size;
+
+            if (p_updatedPart.Shape != null)
+                part.Shape = p_updatedPart.Shape;
+
+            if (p_updatedPart.Size != null)
+                part.Size = p_updatedPart.Size;
+
+            if (p_updatedPart.Type != null)
+                part.Type = p_updatedPart.Type;
+
+            if (p_updatedPart.Material != null)
+                part.Material = p_updatedPart.Material;
+
+            if (p_updatedPart.Description != null)
+                part.Description = p_updatedPart.Description;
+
+            if(string.IsNullOrWhiteSpace(p_updatedPart.ImageUrl))
+                part.ImageUrl = p_updatedPart.ImageUrl;
+
+            if (imageFile != null && imageFile.Length > 0)
             {
-                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(p_imageFile.FileName);
-                string imageUrl = await m_blobStorageService.UploadFileAsync(p_imageFile.OpenReadStream(), fileName);
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                string imageUrl = await m_blobStorageService.UploadFileAsync(imageFile.OpenReadStream(), fileName);
                 part.ImageUrl = imageUrl;
             }
 
-            if (p_engineVariantIds != null && p_engineVariantIds.Any())
+            if (engineVariantIds != null && engineVariantIds.Any())
             {
-                p_engineVariantIds = p_engineVariantIds.Distinct().ToList();
+                engineVariantIds = engineVariantIds.Distinct().ToList();
 
                 var validEvIds = await m_context.EngineVariants
-                    .Where(ev => p_engineVariantIds.Contains(ev.Id))
+                    .Where(ev => engineVariantIds.Contains(ev.Id))
                     .Select(ev => new { ev.Id, ev.CarModelId })
                     .ToListAsync();
 
-                if (validEvIds.Count != p_engineVariantIds.Count)
+                if (validEvIds.Count != engineVariantIds.Count)
                     return BadRequest("Egy vagy több megadott EngineVariant nem létezik.");
 
                 if (validEvIds.Any(x => x.CarModelId != p_updatedPart.CarModelId))
@@ -238,7 +255,7 @@ namespace AutoPartsShop.API.Controllers
 
                 m_context.PartEngineVariants.RemoveRange(part.PartEngineVariants);
 
-                foreach (var evId in p_engineVariantIds)
+                foreach (var evId in engineVariantIds)
                 {
                     m_context.PartEngineVariants.Add(new PartEngineVariant
                     {
